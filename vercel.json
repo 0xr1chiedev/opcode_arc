@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "echo \"static site: nothing to install\"",
+  "buildCommand": "echo \"static site: apps/web/index.html is prebuilt (python3 apps/web/build.py)\"",
+  "outputDirectory": "apps/web",
+  "cleanUrls": true,
+  "headers": [
+    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }
+  ]
+}

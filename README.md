@@ -49,6 +49,12 @@ curl -s -XPOST localhost:8787/v1/tokens/LUMEN/trade -H "authorization: Bearer $T
 curl -s -XPOST localhost:8787/v1/pax/messages -H "authorization: Bearer $TOKEN" -d '{"text":"Launch $ORBX called Orbit Ops, standard, right away"}'
 ```
 
+## Deploy (Vercel)
+
+`vercel.json` publishes `apps/web` as a static site: no install, no build, `apps/web/index.html` is served at `/`.
+After changing anything in `apps/web/src`, run `npm run build:web` and commit the regenerated `apps/web/index.html`.
+The API (`services/api`) is a long-running Node server and is deployed separately (any Node 22 host); point the UI at it with `?api=https://…`.
+
 ## Test
 
 ```bash
