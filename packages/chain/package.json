@@ -1,0 +1,1 @@
+{ "name": "@opcode/chain", "version": "0.1.0", "private": true, "type": "module", "description": "Arc mainnet config, contract ABIs and the ChainAdapter: a simulated ledger for development and tests, and a viem-based Arc adapter that prepares transactions for the user's wallet.", "exports": { ".": "./src/index.ts" } }

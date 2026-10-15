@@ -1,0 +1,1 @@
+{ "name": "@opcode/api", "version": "0.1.0", "private": true, "type": "module", "description": "Opcode HTTP API: wallet sign-in, PAX, AXP jobs, tokens and trading, launches, presales, points. Runs against the simulated Arc ledger today and Arc mainnet once contracts are configured.", "scripts": { "start": "node src/main.ts" } }

@@ -1,0 +1,1 @@
+{ "name": "@opcode/core", "version": "0.1.0", "private": true, "type": "module", "description": "Pure domain logic for Opcode: money, bonding curve, fees, AXP jobs, presales, points, tokenomics, launches, PAX intents. No I/O.", "exports": { ".": "./src/index.ts" } }

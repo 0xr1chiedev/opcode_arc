@@ -1,0 +1,1 @@
+{ "name": "@opcode/integrations", "version": "0.1.0", "private": true, "type": "module", "description": "Adapters to the outside world: X (link + engagement), price feeds, and the agent runtime that delivers AXP jobs. Each has a mock for development/tests and a real implementation to switch on with credentials.", "exports": { ".": "./src/index.ts" } }

@@ -1,6 +1,6 @@
 """Build Opcode into a single self-contained index.html.
 
-Usage:  python3 build.py            -> index.html (full document, open it in a browser)
+Usage:  python3 build.py            -> apps/web/index.html (full document, open it in a browser)
         python3 build.py --fragment -> dist/opcode.fragment.html (body-only, used for the claude.ai artifact)
 """
 import os, sys
@@ -20,7 +20,7 @@ svg = '''<svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <symbol id="fmark" viewBox="0 0 120 120"><rect width="120" height="120" rx="14" fill="#09090A"/><rect x="1" y="1" width="118" height="118" rx="13" fill="none" stroke="#2C2C32" stroke-width="2"/><path d="M30 6v4M30 110v4" stroke="#3A3A41" stroke-width="1.2"/><path d="M45 6v4M45 110v4" stroke="#3A3A41" stroke-width="1.2"/><path d="M60 6v4M60 110v4" stroke="#3A3A41" stroke-width="1.2"/><path d="M75 6v4M75 110v4" stroke="#3A3A41" stroke-width="1.2"/><path d="M90 6v4M90 110v4" stroke="#3A3A41" stroke-width="1.2"/><g transform="translate(28.0 28.0)"><g fill="none" stroke="#F1EFE9" stroke-width="9.0" stroke-linecap="butt"><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z"/><path d="M4.5 0V66"/></g><rect x="48" y="0" width="16" height="40" fill="#FF5B1F"/></g></symbol></defs></svg>
 '''
 css = rd('style.css') + '\n' + rd('skin.css')
-js = ''.join(rd(p) for p in ['a1.js', 'a2.js', 'a3.js', 'a5.js', 'a4.js'])
+js = ''.join(rd(p) for p in ['a0.js', 'a1.js', 'a2.js', 'a3.js', 'a5.js', 'a4.js'])
 body = '<style>' + css + '</style>\n' + svg + '<div id="root"></div>\n' + rd('wp.html') + '\n<script>\n' + js + '\n</script>\n'
 
 if '--fragment' in sys.argv:

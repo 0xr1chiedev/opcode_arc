@@ -1,6 +1,9 @@
 node_modules/
 dist/
-tests/*.png
+data/
+*.log
+.env
+apps/web/tests/*.png
 brand/*.png
 brand/*.svg
 .DS_Store
