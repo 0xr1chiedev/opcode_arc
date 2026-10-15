@@ -1,0 +1,11 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+(async()=>{ const b = await chromium.launch(process.env.CHROME_PATH ? {executablePath:process.env.CHROME_PATH} : {});
+  const shot = async (svgFile, out, w, h, scale=1, bg='#09090A') => { const p = await b.newPage({viewport:{width:w,height:h}, deviceScaleFactor:scale}); const svg = fs.readFileSync(svgFile,'utf8').replace(/width="\d+" height="\d+"/, `width="${w}" height="${h}"`); await p.setContent(`<html><body style="margin:0;background:${bg}">${svg}</body></html>`); await p.waitForTimeout(400); await p.screenshot({path:out, omitBackground: bg==='transparent'}); await p.close(); };
+  await shot('mark.svg','mark-1024.png',1024,1024,1,'transparent');
+  await shot('mark.svg','avatar-400.png',400,400,1,'#09090A');
+  await shot('wordmark-dark-bg.svg','wordmark-dark.png',347*4,140*4,1);
+  await shot('wordmark-light-bg.svg','wordmark-light.png',347*4,140*4,1,'#F1EFE9');
+  await shot('banner.svg','banner-1500x500.png',1500,500,1);
+  await shot('banner.svg','banner-3000x1000.png',1500,500,2);
+  await b.close(); })();

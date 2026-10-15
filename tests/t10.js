@@ -1,0 +1,24 @@
+const {JSDOM, VirtualConsole} = require('jsdom'); const fs = require('fs');
+const html = fs.readFileSync(process.argv[2],'utf8');
+const errs=[]; const vc = new VirtualConsole(); vc.on('jsdomError', e => { if(!/getContext|Not implemented/.test(e.message)) errs.push('jsdom: '+e.message); }); vc.on('error', e=>errs.push('console.error: '+e));
+const dom = new JSDOM('<!doctype html><html><head></head><body>'+html+'</body></html>',{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',virtualConsole:vc,beforeParse(w){ w.matchMedia=()=>({matches:false,addEventListener(){}}); w.Element.prototype.scrollIntoView=()=>{}; w.scrollTo=()=>{}; w.TextEncoder=require('util').TextEncoder; w.addEventListener('error',e=>errs.push(e.message)); }});
+const w = dom.window, d = w.document, sleep = ms => new Promise(r=>setTimeout(r,ms));
+const go = h => { w.location.hash = h; w.dispatchEvent(new w.HashChangeEvent('hashchange')); };
+const txt = () => d.getElementById('view').textContent.replace(/\s+/g,' ');
+const say = async q => { d.getElementById('cin').value = q; d.getElementById('cform').dispatchEvent(new w.Event('submit',{cancelable:true})); await sleep(650); };
+const lastBot = () => [...d.querySelectorAll('#msgs .m.bot')].pop().textContent.replace(/\s+/g,' ').slice(0,180);
+const click = sel => { const e = typeof sel==='string' ? d.querySelector(sel) : sel; if(!e) throw new Error('missing '+sel); e.click(); };
+const EV = x => { const s = d.createElement('script'); s.textContent = 'with(window.__op){ window.__r = (' + x + '); }'; d.body.appendChild(s); s.remove(); return w.__r; };
+const inp = (id,v) => { const e = d.getElementById(id); e.value = v; e.dispatchEvent(new w.Event('input',{bubbles:true})); };
+(async()=>{
+  await sleep(300); click('#h-d'); await sleep(700); const sc = d.querySelector('#o-s'); if(sc) sc.click();
+  go('launch/NAVI'); await sleep(30); console.log('std view:', d.getElementById('ul-side').textContent.replace(/\s+/g,' ').slice(0,90));
+  click('#ul-r'); await sleep(10); console.log('remind:', d.getElementById('ul-r').textContent.trim());
+  go('create'); await sleep(20); click('[data-t="standard"]'); click('#cw-nx'); await sleep(5);
+  inp('c-n','Zeta Ops'); inp('c-s','ZETA'); click('#cw-nx'); await sleep(5); click('#cw-nx'); await sleep(5); click('#cw-nx'); await sleep(5); click('#cw-nx'); await sleep(5);
+  click('[data-when="6"]'); await sleep(5); console.log('btn:', d.getElementById('cw-nx').textContent); click('#cw-nx'); await sleep(30);
+  console.log('scheduled ->', w.location.hash, EV('!!TK("ZETA")'));
+  click('#ul-now'); await sleep(30); console.log('launched ->', w.location.hash, EV('!!TK("ZETA")'));
+  go('tokens'); await sleep(30); click('[data-ul="standard"]'); await sleep(10); console.log('std cards', d.querySelectorAll('.ps-card.std').length, 'presale cards', d.querySelectorAll('.ps-card:not(.std)').length);
+  console.log('errors', errs.slice(0,8)); process.exit(0);
+})().catch(e=>{ console.log('FAIL', e.stack, errs.slice(0,5)); process.exit(1); });

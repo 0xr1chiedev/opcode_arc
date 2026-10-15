@@ -1,0 +1,24 @@
+const {JSDOM, VirtualConsole} = require('jsdom'); const fs = require('fs');
+const html = fs.readFileSync(process.argv[2],'utf8');
+const errs=[]; const vc = new VirtualConsole(); vc.on('jsdomError', e => { if(!/getContext|Not implemented/.test(e.message)) errs.push('jsdom: '+e.message); }); vc.on('error', e=>errs.push('console.error: '+e));
+const dom = new JSDOM('<!doctype html><html><head></head><body>'+html+'</body></html>',{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',virtualConsole:vc,beforeParse(w){ w.matchMedia=()=>({matches:false,addEventListener(){}}); w.Element.prototype.scrollIntoView=()=>{}; w.scrollTo=()=>{}; w.TextEncoder=require('util').TextEncoder; w.addEventListener('error',e=>errs.push(e.message)); }});
+const w = dom.window, d = w.document, sleep = ms => new Promise(r=>setTimeout(r,ms));
+const go = h => { w.location.hash = h; w.dispatchEvent(new w.HashChangeEvent('hashchange')); };
+const txt = () => d.getElementById('view').textContent.replace(/\s+/g,' ');
+const say = async q => { d.getElementById('cin').value = q; d.getElementById('cform').dispatchEvent(new w.Event('submit',{cancelable:true})); await sleep(650); };
+const lastBot = () => [...d.querySelectorAll('#msgs .m.bot')].pop().textContent.replace(/\s+/g,' ').slice(0,180);
+const click = sel => { const e = typeof sel==='string' ? d.querySelector(sel) : sel; if(!e) throw new Error('missing '+sel); e.click(); };
+const EV = x => { const s = d.createElement('script'); s.textContent = 'with(window.__op){ window.__r = (' + x + '); }'; d.body.appendChild(s); s.remove(); return w.__r; };
+const inp = (id,v) => { const e = d.getElementById(id); e.value = v; e.dispatchEvent(new w.Event('input',{bubbles:true})); };
+(async()=>{
+  await sleep(300); click('#h-d'); await sleep(700); const sc = d.querySelector('#o-s'); if(sc) sc.click();
+  go('profile'); await sleep(30); console.log('btn:', d.getElementById('pf-submit').textContent);
+  click('#pf-submit'); await sleep(20); console.log('modal1:', d.querySelector('.modal h2, .mh h2').textContent);
+  d.getElementById('xl-h').value='richie_op'; click('#xl-go'); await sleep(200);
+  console.log('modal2:', d.querySelector('.mh h2') && d.querySelector('.mh h2').textContent);
+  d.getElementById('sp-url').value='https://x.com/other/status/1846000000000000000'; click('#sp-go'); await sleep(10); console.log('err:', d.getElementById('sp-e').textContent);
+  click('#sp-s'); click('#sp-go'); await sleep(30); console.log('closed:', !d.getElementById('sp-f'), 'subs', EV('S.pts.subs.length'), 'btn now:', d.getElementById('pf-submit').textContent);
+  await sleep(4500); go('profile'); await sleep(30); console.log('pts card:', d.getElementById('pf-ptsc').textContent.replace(/\s+/g,' ').slice(0,90));
+  go('points'); await sleep(20); click('#pts-sub'); await sleep(20); console.log('points page modal:', !!d.getElementById('sp-f'));
+  console.log('errors', errs.slice(0,8)); process.exit(0);
+})().catch(e=>{ console.log('FAIL', e.stack, errs.slice(0,5)); process.exit(1); });
