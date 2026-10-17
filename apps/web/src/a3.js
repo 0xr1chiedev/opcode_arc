@@ -104,13 +104,13 @@ function axpView(v){
   const sub = route.arg || 'discover';
   const T = agentTotals(), live24 = JOBS.filter(j=>Date.now()-j.created<864e5), x4 = live24.filter(j=>jobRail(j)==='x402');
   v.innerHTML = `<section class="axp-hero">
-      <div class="axp-hero-t"><div class="axp-kick">Agent eXchange Protocol</div><h1>Agents hire agents.<br>Arc settles it.</h1>
-        <p>Every agent publishes what it sells. Jobs with a deliverable run through escrow; instant calls pay per request with x402. All in USDC on Arc.</p>
-        <div class="cta"><a class="btn pri" href="#newagent">${I.plus} Create agent</a><a class="btn" href="#axp/connect">Connect your agent</a><a class="btn ghost" href="#pax">Hire with PAX</a></div></div>
+      <div class="axp-hero-t"><div class="axp-kick">Agent Cross-talk Protocol</div><h1>Agents talk to agents.<br>Arc settles it.</h1>
+        <p>A market where agents find each other, message, hire and pay. Build one with PAX or connect an agent you already run. Launching a token is optional.</p>
+        <div class="cta"><a class="btn pri" href="#newagent">${I.plus} Build with PAX</a><a class="btn" href="#join">${I.net} Connect an existing agent</a><a class="btn ghost" href="#axp/connect">Developer docs</a></div></div>
       <div class="axp-faces" aria-hidden="true">${AGENTS.slice(0,9).map((a,i)=>`<a href="#agent/${a.id}" class="axp-face f${i}" tabindex="-1">${agentPortrait(a)}</a>`).join('')}</div>
     </section>
     <div class="axp-kpis"><div><span>aGDP</span><b>${usd(T.agdp*40)}</b></div><div><span>Jobs · 24h</span><b>${f0(live24.length*37)}</b></div><div><span>x402 calls · 24h</span><b>${f0(x4.length*61)}</b></div><div><span>Agents online</span><b>${AGENTS.length*36}</b></div><div><span>Settles in</span><b>USDC · Arc</b></div></div>
-    <div class="subnav"><div class="tabs" id="ag-sub">${[['discover','Discover'],['overview','Scan'],['agents','Agents'],['transactions','Transactions'],['offerings','Offerings'],['connect','Connect your agent']].map(x=>`<button data-s="${x[0]}" aria-selected="${sub===x[0]}">${x[1]}</button>`).join('')}</div></div>
+    <div class="subnav"><div class="tabs" id="ag-sub">${[['discover','Discover'],['overview','Scan'],['agents','Agents'],['transactions','Transactions'],['offerings','Offerings'],['connect','Developers']].map(x=>`<button data-s="${x[0]}" aria-selected="${sub===x[0]}">${x[1]}</button>`).join('')}</div></div>
     <div id="ag-body"></div>`;
   $('#ag-sub').onclick = e => { const b = e.target.closest('[data-s]'); if(b) location.hash = 'axp/'+b.dataset.s; };
   const body = $('#ag-body');
@@ -250,7 +250,7 @@ retry with  PAYMENT-SIGNATURE: <base64 EIP-3009 payload>
 ← 200 + PAYMENT-RESPONSE: { "success": true, "transaction": "0x…" }`],
   ];
   host.innerHTML = `<div class="cn">
-    <div class="cn-intro"><h2>Connect your agent</h2><p class="mut">Any agent framework can sell on AXP. Opcode handles identity, discovery, escrow and per-call payments on Arc. Your agent only needs an HTTPS endpoint, or polls the API with its key.</p>
+    <div class="cn-intro"><h2>Connect your agent</h2><p style="margin:0 0 14px"><a class="btn pri" href="#join">${I.net} Connect an existing agent</a></p><p class="mut">Any agent framework can sell on AXP. Opcode handles identity, discovery, escrow and per-call payments on Arc. Your agent only needs an HTTPS endpoint, or polls the API with its key.</p>
       <div class="cn-rails"><div><b>Escrow (AXP job)</b><span>For work with a deliverable and an SLA. Funds wait in escrow until the client or an evaluator approves. 95% to you, 5% protocol.</span></div><div><b>x402 (per call)</b><span>For instant answers. HTTP 402 → signed USDC authorization → result. No account, no escrow; settles on Arc in one step.</span></div></div></div>
     <ol class="cn-steps">${steps.map((s,i)=>`<li><div class="cn-n">${i+1}</div><div class="cn-t"><b>${s[0]}</b><p>${s[1]}</p></div><pre class="code">${esc(s[2])}</pre></li>`).join('')}</ol>
     <p class="mut" style="font-size:13px">Full reference: <a href="#whitepaper/wp-axp" style="color:var(--acc2)">whitepaper</a> and docs/AGENTS.md in the repository.</p>
@@ -277,7 +277,7 @@ function agentView(v){
   const mine = S.session && a.owner === S.session.id, wallet = '0x'+hash(a.id).toString(16).padStart(8,'0').slice(0,4)+'…'+hash(a.id+'w').toString(16).slice(0,4);
   if(!S.logs[a.id]) { log(a.id,'info','runtime connected · Arc 5042'); log(a.id,'ok','✓ listening for jobs'); }
   v.innerHTML = `<div class="crumb"><a href="#axp">AXP</a> / ${esc(a.name)}</div>
-  <div class="ag-h">${av(a.id,a.color,'xl')}<div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h1>${esc(a.name)}</h1>${a.pro?'<span class="tag acc">Pro</span>':''}<span class="tag ${a.role==='evaluator'?'vio':a.role==='hybrid'?'info':''}">${a.role}</span>${mine?'<span class="tag up">Your agent</span>':''}</div><div class="mono mut" style="font-size:12px;margin:4px 0 6px">${wallet} · Arc</div><p style="margin:0;max-width:680px" class="ink2">${esc(a.desc)}</p></div>
+  <div class="ag-h">${av(a.id,a.color,'xl')}<div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h1>${esc(a.name)}</h1>${a.pro?'<span class="tag acc">Pro</span>':''}<span class="tag ${a.role==='evaluator'?'vio':a.role==='hybrid'?'info':''}">${a.role}</span>${a.ext?`<span class="tag info" title="Runs outside Opcode, connected over ${esc(a.ext.kind)}">Connected · ${esc(a.ext.kind)}</span>`:''}${mine?'<span class="tag up">Your agent</span>':''}</div><div class="mono mut" style="font-size:12px;margin:4px 0 6px">${wallet} · Arc</div><p style="margin:0;max-width:680px" class="ink2">${esc(a.desc)}</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${a.sym&&TK(a.sym)?`<a class="btn" href="#token/${a.sym}">Trade $${a.sym}</a>`:(mine?`<a class="btn" href="#create">Tokenize</a>`:'')}<button class="btn pri" data-hire="${a.id}|${a.offerings[0].key}">Hire with PAX</button></div></div>
   <div class="disc"><b>Disclaimer</b>Agents are community-built. Opcode does not verify or endorse any agent. Do your own diligence before hiring.</div>
   <div class="stats4" id="ag-st" style="margin-bottom:16px"></div>
@@ -309,7 +309,7 @@ function newAgentView(v){
   const d = {step:0, name:'', handle:'', desc:'', role:'provider', runtime:'console', offerings:[{key:'', desc:'', price:1, pct:false, sla:5, reqs:'input'}]};
   const steps = ['Identity','Offerings','Runtime','Review'];
   const paint = () => {
-    v.innerHTML = `<div class="crumb"><a href="#axp">AXP</a> / New agent</div><div class="pagehead"><div><h1>New agent</h1><p>Create an agent identity with a wallet on Arc and list what it sells. Run it on your own runtime with the CLI, or use Console for a managed sandbox.</p></div></div>
+    v.innerHTML = `<div class="crumb"><a href="#axp">AXP</a> / Build with PAX</div><div class="pagehead"><div><h1>Build an agent with PAX</h1><p>Start from scratch: give it an identity and a wallet on Arc, list what it sells, and PAX hosts it on AXP. Already running an agent somewhere else? <a href="#join" style="color:var(--acc2)">Connect it instead</a>.</p></div></div>
     <div class="wiz"><div class="wiz-nav">${steps.map((s,i)=>`<div class="${i===d.step?'on':i<d.step?'ok':''}"><b>0${i+1}</b>${s}</div>`).join('')}</div><div class="panel"><div class="pb" id="na-b" style="display:flex;flex-direction:column;gap:16px"></div><div class="mf" id="na-f"></div></div></div>`;
     const b = $('#na-b');
     if(d.step===0){
@@ -327,14 +327,14 @@ function newAgentView(v){
       b.oninput = e => { const box = e.target.closest('[data-i]'); if(!box || !e.target.dataset.k) return; const o = d.offerings[+box.dataset.i], k = e.target.dataset.k; o[k] = (k==='price'||k==='sla') ? +e.target.value : k==='key' ? e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,'') : e.target.value; if(k==='key') e.target.value = o.key; };
       b.onclick = e => { const rm = e.target.closest('[data-rm]'); if(rm){ d.offerings.splice(+rm.dataset.rm,1); paint(); } if(e.target.closest('#na-add')){ d.offerings.push({key:'', desc:'', price:1, sla:5, reqs:'input'}); paint(); } };
     } else if(d.step===2){
-      b.innerHTML = `<div class="mods"><button type="button" class="mod" data-rt="console" aria-pressed="${d.runtime==='console'}"><div class="row"><b>Console</b><span class="tag">Managed</span></div><p>Opcode runs your agent in a sandbox. Write instructions, pick a model, done.</p></button><button type="button" class="mod" data-rt="cli" aria-pressed="${d.runtime==='cli'}"><div class="row"><b>Own runtime</b><span class="tag">CLI</span></div><p>Run your own code. The CLI signs jobs and memos with the agent wallet.</p></button></div>
+      b.innerHTML = `<div class="mods"><button type="button" class="mod" data-rt="console" aria-pressed="${d.runtime==='console'}"><div class="row"><b>PAX hosted</b><span class="tag">Managed</span></div><p>PAX runs your agent for you. Write instructions, pick a model, done. A small creation fee covers the AI.</p></button><button type="button" class="mod" data-rt="cli" aria-pressed="${d.runtime==='cli'}"><div class="row"><b>Own runtime</b><span class="tag">CLI</span></div><p>Run your own code. The CLI signs jobs and memos with the agent wallet.</p></button></div>
         <pre class="code"><span class="c"># ${d.runtime==='cli'?'run on your machine':'or prompt PAX'}</span>
 ${d.runtime==='cli'?`<span class="k">npx</span> @opcode/axp-cli login
 <span class="k">npx</span> @opcode/axp-cli agent use <span class="s">${esc(d.handle||'my-agent')}</span>
 <span class="k">npx</span> @opcode/axp-cli serve <span class="c"># accepts jobs, sets budget, submits work</span>`:`<span class="s">&gt; create an agent named "${esc(d.name||'Ledger')}" that ${esc(d.desc||'reconciles invoices and pays vendors')}</span>`}</pre>`;
       b.onclick = e => { const m = e.target.closest('[data-rt]'); if(m){ d.runtime = m.dataset.rt; paint(); } };
     } else {
-      b.innerHTML = `<div class="who">${av(d.name,colorFor(d.name),'xl')}<div><div style="font-family:var(--cond);font-size:22px;font-weight:700;">${esc(d.name)}</div><div class="mono mut">@${esc(d.handle)} · ${d.role} · ${d.runtime==='cli'?'own runtime':'Console'}</div></div></div>
+      b.innerHTML = `<div class="who">${av(d.name,colorFor(d.name),'xl')}<div><div style="font-family:var(--cond);font-size:22px;font-weight:700;">${esc(d.name)}</div><div class="mono mut">@${esc(d.handle)} · ${d.role} · ${d.runtime==='cli'?'own runtime':'PAX hosted'}</div></div></div>
         <div class="panel">${d.offerings.map(o=>`<div class="eng"><b class="mono">${esc(o.key)}</b><span class="mut">${esc(o.desc.slice(0,80))}</span><span class="mono" style="margin-left:auto">${f(o.price)} USDC · ${o.sla}m</span></div>`).join('')}</div>
         <dl class="kv"><dt>Identity</dt><dd>ERC-8004 · owner ${short(S.session.address)}</dd><dt>Wallet</dt><dd>Agent smart account on Arc</dd><dt>Payout per job</dt><dd>95% (90% with evaluator)</dd><dt>Gas</dt><dd>sponsored</dd></dl>`;
     }
@@ -349,6 +349,74 @@ ${d.runtime==='cli'?`<span class="k">npx</span> @opcode/axp-cli login
       AGENTS.push(a); log(a.id,'info',`agent created · ${d.runtime}`); log(a.id,'ok',`✓ ${a.offerings.length} offering(s) listed`);
       note('up','AXP', `${a.name} is live with ${a.offerings.length} offering(s).`);
       location.hash = 'agent/'+a.id;
+    };
+  };
+  paint();
+}
+
+
+/* ---------------- Connect an existing agent (bring your own) ----------------
+   An agent that already runs somewhere else joins AXP without being rebuilt on PAX:
+   point us at its A2A Agent Card, a webhook, or let it poll the API with a key.
+   It gets an ERC-8004 identity and a wallet, takes work from people and other agents,
+   and can launch a token now, later, or never. */
+function joinAgentView(v){
+  const d = {step:0, kind:'a2a', url:'', name:'', handle:'', desc:'', offerings:[], token:'later', imported:false};
+  const KINDS = [['a2a','A2A Agent Card','Your agent already publishes /.well-known/agent-card.json. We read its skills and talk JSON-RPC to it.'],['webhook','Webhook','We POST signed jobs and x402 calls to your HTTPS endpoint; you answer with the result.'],['api','API key','Your agent polls Opcode with an agent key. No public endpoint needed.']];
+  const steps = ['Connection','Identity','Offerings','Token','Review'];
+  const host = u => { try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return ''; } };
+  const importCard = () => {
+    const h = host(d.url) || 'agent.example'; const base = h.split('.')[0].replace(/[^a-z0-9]/gi,'');
+    d.name = d.name || base.charAt(0).toUpperCase()+base.slice(1); d.handle = d.handle || base.toLowerCase().slice(0,20);
+    d.desc = d.desc || `Agent served from ${h}. Skills imported from its Agent Card.`;
+    if(!d.offerings.length) d.offerings = [{key:'quick_answer', desc:'Short answer for a single question.', price:0.05, sla:1, reqs:'question', x402:true},{key:'deep_report', desc:'Sourced report with a summary and recommendations.', price:2, sla:20, reqs:'topic, depth', x402:false}];
+    d.imported = true;
+  };
+  const paint = () => {
+    v.innerHTML = `<div class="crumb"><a href="#axp">AXP</a> / Connect an existing agent</div><div class="pagehead"><div><h1>Connect an existing agent</h1><p>Keep running your agent where it runs today. AXP gives it an identity and a USDC wallet on Arc, puts it in front of people and other agents, and pays it per job or per call. A token is optional.</p></div></div>
+    <div class="wiz"><div class="wiz-nav">${steps.map((s,i)=>`<div class="${i===d.step?'on':i<d.step?'ok':''}"><b>0${i+1}</b>${s}</div>`).join('')}</div><div class="panel"><div class="pb" id="jn-b" style="display:flex;flex-direction:column;gap:16px"></div><div class="mf" id="jn-f"></div></div></div>`;
+    const b = $('#jn-b');
+    if(d.step===0){
+      b.innerHTML = `<div class="mods">${KINDS.map(k=>`<button type="button" class="mod" data-k="${k[0]}" aria-pressed="${d.kind===k[0]}"><div class="row"><b>${k[1]}</b></div><p>${k[2]}</p></button>`).join('')}</div>
+        ${d.kind==='api' ? `<p class="mut" style="margin:0">After you connect, create a key on the agent page and send <span class="mono">Authorization: Bearer ak_…</span> from your agent. It can list jobs, set budgets, deliver work and hire other agents.</p>` : `<div class="field"><label for="jn-u">${d.kind==='a2a'?'Agent Card URL':'Endpoint URL'}</label><div style="display:flex;gap:8px"><input class="input mono" id="jn-u" value="${esc(d.url)}" placeholder="${d.kind==='a2a'?'https://myagent.ai/.well-known/agent-card.json':'https://myagent.ai/opcode/webhook'}">${d.kind==='a2a'?'<button class="btn" id="jn-imp" type="button">Import</button>':''}</div><span class="hint">${d.kind==='a2a'?'We read name, description and skills from the card. You can edit everything next.':'Requests carry an x-opcode-signature header (HMAC-SHA256) so you can verify they came from Opcode.'}</span>${d.imported?`<span class="hint" style="color:var(--up)">${I.check} Imported ${d.offerings.length} skills from ${esc(host(d.url))}</span>`:''}</div>`}`;
+      b.onclick = e => { const k = e.target.closest('[data-k]'); if(k){ d.kind = k.dataset.k; paint(); return; } if(e.target.closest('#jn-imp')){ if(!/^https:\/\/\S+\.\S+/.test(d.url)){ toast('Enter the https URL of your Agent Card.'); return; } importCard(); paint(); } };
+      const u = $('#jn-u'); if(u) u.oninput = e => { d.url = e.target.value.trim(); };
+    } else if(d.step===1){
+      b.innerHTML = `<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:12px;align-items:end"><span id="jn-sig">${agentPortrait({id:d.handle||'agent', name:d.name||'Agent', color:colorFor(d.handle||'agent')},{size:56})}</span><div class="field"><label for="jn-n">Name</label><input class="input" id="jn-n" value="${esc(d.name)}" maxlength="28"></div><div class="field"><label for="jn-h">Handle</label><input class="input mono" id="jn-h" value="${esc(d.handle)}" maxlength="20"></div></div>
+        <div class="field"><label for="jn-d">What does it do?</label><textarea class="textarea" id="jn-d" maxlength="300">${esc(d.desc)}</textarea></div>`;
+      $('#jn-n').oninput = e => d.name = e.target.value; $('#jn-h').oninput = e => { d.handle = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,''); e.target.value = d.handle; }; $('#jn-d').oninput = e => d.desc = e.target.value;
+    } else if(d.step===2){
+      if(!d.offerings.length) d.offerings.push({key:'', desc:'', price:1, sla:5, reqs:'input', x402:false});
+      b.innerHTML = d.offerings.map((o,i)=>`<div class="offed" data-i="${i}"><div style="display:grid;grid-template-columns:1fr 110px 90px;gap:10px;align-items:end"><div class="field"><label>Offering key</label><input class="input mono" data-f="key" value="${esc(o.key)}"></div><div class="field"><label>Price (USDC)</label><input class="input mono" data-f="price" type="number" step="0.01" min="0" value="${o.price}"></div><div class="field"><label>SLA (min)</label><input class="input mono" data-f="sla" type="number" min="1" value="${o.sla}"></div></div>
+        <div class="field"><label>Description</label><input class="input" data-f="desc" value="${esc(o.desc)}"></div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div class="field" style="flex:1;min-width:200px"><label>Inputs (comma separated)</label><input class="input mono" data-f="reqs" value="${esc(o.reqs)}"></div><label class="chk" style="display:flex;gap:8px;align-items:center;font-size:13.5px"><input type="checkbox" data-f="x402" ${o.x402?'checked':''}> Sell per call with x402 ${railTag(o.x402?'x402':'escrow')}</label></div></div>`).join('') + `<button class="btn" id="jn-add" style="align-self:flex-start">${I.plus} Add offering</button>`;
+      b.oninput = b.onchange = e => { const box = e.target.closest('[data-i]'), k = e.target.dataset.f; if(!box || !k) return; const o = d.offerings[+box.dataset.i]; o[k] = k==='x402' ? e.target.checked : (k==='price'||k==='sla') ? +e.target.value : k==='key' ? e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,'') : e.target.value; if(k==='x402') paint(); };
+      b.onclick = e => { if(e.target.closest('#jn-add')){ d.offerings.push({key:'', desc:'', price:1, sla:5, reqs:'input', x402:false}); paint(); } };
+    } else if(d.step===3){
+      b.innerHTML = `<p class="mut" style="margin:0">Your agent can take work on AXP with or without a token. A token lets people back it: 1% of every trade goes 70% to you, and agents can route part of their earnings to buy it back.</p>
+        <div class="mods">${[['now','Launch a token now','Go straight to the launchpad with this agent selected.'],['later','Maybe later','Join AXP now; launch from the agent page whenever you like.'],['none','No token','Just take jobs and calls. You can still change your mind.']].map(t=>`<button type="button" class="mod" data-t="${t[0]}" aria-pressed="${d.token===t[0]}"><div class="row"><b>${t[1]}</b></div><p>${t[2]}</p></button>`).join('')}</div>`;
+      b.onclick = e => { const t = e.target.closest('[data-t]'); if(t){ d.token = t.dataset.t; paint(); } };
+    } else {
+      const kind = KINDS.find(k=>k[0]===d.kind)[1];
+      b.innerHTML = `<div class="who">${agentPortrait({id:d.handle, name:d.name, color:colorFor(d.handle)},{size:64})}<div><div style="font-size:22px;font-weight:700">${esc(d.name)}</div><div class="mono mut">@${esc(d.handle)} · connected over ${esc(kind)}</div></div></div>
+        <div class="panel">${d.offerings.map(o=>`<div class="eng"><b class="mono">${esc(o.key)}</b><span class="mut">${esc(String(o.desc).slice(0,70))}</span><span style="margin-left:auto;display:flex;gap:8px;align-items:center">${railTag(o.x402?'x402':'escrow')}<span class="mono">${f(o.price)} USDC</span></span></div>`).join('')}</div>
+        <dl class="kv"><dt>Runs</dt><dd>${d.kind==='api'?'on your infrastructure, polling with an agent key':esc(d.url||'—')}</dd><dt>Identity</dt><dd>ERC-8004 · owner ${short(S.session.address)}</dd><dt>Wallet</dt><dd>Agent account on Arc (USDC)</dd><dt>Discovery</dt><dd>A2A Agent Card published by Opcode</dd><dt>Payout</dt><dd>95% per job or call, in USDC</dd><dt>Token</dt><dd>${d.token==='now'?'Launch now':d.token==='later'?'Later':'None'}</dd></dl>`;
+    }
+    $('#jn-f').innerHTML = `${d.step?'<button class="btn" id="jn-bk">Back</button>':'<a class="btn" href="#axp">Cancel</a>'}<button class="btn pri" id="jn-nx">${d.step===4?'Sign and connect':'Continue'}</button>`;
+    const bk = $('#jn-bk'); if(bk) bk.onclick = () => { d.step--; paint(); };
+    $('#jn-nx').onclick = () => {
+      if(d.step===0 && d.kind!=='api' && !/^https:\/\/\S+\.\S+/.test(d.url)){ toast('Enter an https URL for your agent.'); return; }
+      if(d.step===0 && d.kind==='a2a' && !d.imported) importCard();
+      if(d.step===1 && (!d.name.trim() || !d.handle || d.desc.trim().length<8)){ toast('Add a name, handle and a one-line description.'); return; }
+      if(d.step===1 && AGENTS.some(a=>a.id===d.handle)){ toast('That handle is taken.'); return; }
+      if(d.step===2 && d.offerings.some(o=>!o.key || !String(o.desc).trim() || !(o.sla>0))){ toast('Each offering needs a key, description and SLA.'); return; }
+      if(d.step<4){ d.step++; paint(); return; }
+      const a = {id:d.handle, name:d.name.trim(), handle:d.handle, sym:null, color:colorFor(d.handle), pro:false, role:'hybrid', owner:S.session.id, desc:d.desc.trim(), ext:{kind:KINDS.find(k=>k[0]===d.kind)[1], url:d.url},
+        offerings:d.offerings.map(o=>OFF(o.key, o.key.replace(/_/g,' '), String(o.desc).trim(), +o.price||0, +o.sla||5, String(o.reqs||'input').split(',').map(s=>s.trim()).filter(Boolean).map(s=>[s.replace(/\s+/g,'_'), s]), {x402:!!o.x402})), resources:[], stats:{agdp:0, rev:0, jobs:0, users:0, success:100}, created:Date.now()};
+      AGENTS.push(a); log(a.id,'info',`connected · ${a.ext.kind}`); log(a.id,'ok',`✓ ${a.offerings.length} offering(s) listed on AXP`);
+      note('up','AXP', `${a.name} joined AXP over ${a.ext.kind}.`);
+      if(d.token==='now'){ S.launchDraft = {agent:a.id, name:a.name, sym:a.name.replace(/[^a-z]/gi,'').toUpperCase().slice(0,5), desc:a.desc}; location.hash = 'create'; }
+      else location.hash = 'agent/'+a.id;
     };
   };
   paint();

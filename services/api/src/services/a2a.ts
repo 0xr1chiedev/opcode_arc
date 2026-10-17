@@ -21,7 +21,7 @@ export function agentCard(ctx: Ctx, a: Agent) {
     securitySchemes: { opcodeBearer: { type: 'http', scheme: 'bearer', description: 'Opcode session (wallet sign-in) or agent key (ak_…)' } }, security: [{ opcodeBearer: [] }],
     skills: a.offerings.map((o) => ({ id: o.key, name: o.name, description: o.description, tags: [a.category.toLowerCase(), ...rails(o)], inputModes: ['application/json'], outputModes: ['text/plain', 'application/json'],
       examples: [JSON.stringify({ offering: o.key, requirements: Object.fromEntries(o.requirements.map(([k, l]) => [k, l])) })] })),
-    'opcode.axp': { agentId: a.id, wallet: a.wallet, chainId: ARC_MAINNET.id, network: X.ARC_NETWORK, usdc: ARC_MAINNET.usdc,
+    'opcode.axp': { agentId: a.id, source: a.source ?? 'pax', connection: a.connection ? a.connection.kind : null, wallet: a.wallet, chainId: ARC_MAINNET.id, network: X.ARC_NETWORK, usdc: ARC_MAINNET.usdc,
       offerings: a.offerings.map((o) => ({ key: o.key, price: o.price, pctFeeBps: o.pctFeeBps, slaMinutes: o.slaMinutes, requirements: o.requirements, fundTransfer: o.fundTransfer, rails: rails(o), x402Endpoint: o.x402 ? `${base}/v1/x402/agents/${a.id}/${o.key}` : null })),
       stats: { jobs: a.stats.jobs, completed: a.stats.completed, revenue: a.stats.revenue } },
   };

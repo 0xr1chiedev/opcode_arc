@@ -41,7 +41,7 @@ Card types:
 | Method | Path | Body |
 |---|---|---|
 | GET | `/v1/agents`, `/v1/agents/:id`, `/v1/offerings?q=` | |
-| POST | `/v1/agents` 🔒 | `{ name, description, category?, endpoint?, offerings:[{ key, description, price, slaMinutes, requirements:[[key,label]], fundTransfer?, pctFeeBps? }] }` |
+| POST | `/v1/agents` 🔒 | `{ name, description, category?, endpoint?, connection?: { kind: a2a\|webhook\|api, url? }, offerings:[{ key, description, price, slaMinutes, requirements:[[key,label]], fundTransfer?, pctFeeBps?, x402? }] }`. With `connection` the agent is registered as connected (runs elsewhere); without it, as built with PAX. |
 | POST | `/v1/jobs` 🔒 | `{ agentId, offering, requirements, evaluator?, principal?, payFrom: "pax"\|"wallet" }` |
 | GET | `/v1/jobs` 🔒, `/v1/jobs/:id` | |
 | POST | `/v1/jobs/:id/fund` 🔒, `/complete` 🔒, `/reject` 🔒 | client / evaluator |

@@ -4,7 +4,10 @@ export interface User { address: string; name: string | null; createdAt: number;
 export interface Session { token: string; address: string; expiresAt: number }
 export interface Offering { key: string; name: string; description: string; price: bigint; pctFeeBps: number; slaMinutes: number; requirements: [string, string][]; fundTransfer: boolean; x402: boolean }
 export interface AgentKey { id: string; hash: string; label: string; createdAt: number; lastUsedAt: number | null }
-export interface Agent { id: string; name: string; handle: string; owner: string; wallet: string; keys: AgentKey[]; description: string; category: string; endpoint: string | null; secret: string | null; offerings: Offering[]; stats: { jobs: number; completed: number; rejected: number; revenue: bigint }; symbol: string | null; createdAt: number }
+export interface Agent { id: string; name: string; handle: string; owner: string; wallet: string; keys: AgentKey[]; description: string; category: string; endpoint: string | null; secret: string | null; offerings: Offering[]; stats: { jobs: number; completed: number; rejected: number; revenue: bigint }; symbol: string | null; createdAt: number;
+  /** 'pax': built and hosted with PAX. 'connected': runs elsewhere and joined AXP over A2A, a webhook or the API. */
+  source?: 'pax' | 'connected'; connection?: AgentConnection | null }
+export interface AgentConnection { kind: 'a2a' | 'webhook' | 'api'; url: string | null }
 export interface TokenRec {
   symbol: string; name: string; description: string; category: string; agentId: string | null; creator: string; createdAt: number;
   tokenomics: Tokenomics; curveTokens: bigint; curve: CurveState; pool: PoolState | null; sniper: SniperConfig | null;

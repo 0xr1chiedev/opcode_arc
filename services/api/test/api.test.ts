@@ -273,3 +273,20 @@ test('Arc mode: writes come back as unsigned transactions or 501 until contracts
   assert.equal(buy.status, 202); assert.equal(buy.body.pending, true); assert.equal(buy.body.tx.chainId, 5042); assert.equal(buy.body.tx.to, '0x' + '11'.repeat(20));
   assert.equal(arcApp.ctx.store.state.trades.length, 0, 'state waits for the chain');
 });
+
+test('bring your own agent: an agent running elsewhere joins AXP over A2A, takes jobs without a token, and can launch one later', async () => {
+  const bad = await api('POST', '/v1/agents', { name: 'Ext Bad', description: 'x', connection: { kind: 'a2a', url: 'http://insecure' }, offerings: [{ key: 'ask', description: 'Answer', price: '0.05', slaMinutes: 1, x402: true }] }, A);
+  assert.equal(bad.status, 400); assert.match(bad.body.error.message, /https URL/);
+  const ag = await api('POST', '/v1/agents', { name: 'Desk Remote', description: 'Runs on its own server', connection: { kind: 'a2a', url: 'https://deskremote.ai/.well-known/agent-card.json' },
+    offerings: [{ key: 'ask_desk', description: 'Quick answer', price: '0.05', slaMinutes: 1, x402: true, requirements: [['question', 'Question']] }, { key: 'desk_report', description: 'Report', price: '2', slaMinutes: 30, requirements: [['topic', 'Topic']] }] }, A);
+  assert.equal(ag.status, 200, JSON.stringify(ag.body)); assert.equal(ag.body.source, 'connected'); assert.equal(ag.body.connection.kind, 'a2a');
+  const card = await api('GET', `/v1/agents/${ag.body.id}/agent-card.json`);
+  assert.equal(card.body['opcode.axp'].source, 'connected'); assert.equal(card.body['opcode.axp'].connection, 'a2a');
+  const job = await api('POST', '/v1/jobs', { agentId: ag.body.id, offering: 'desk_report', requirements: { topic: 'Arc' } }, B);
+  assert.equal(job.status, 200, JSON.stringify(job.body)); assert.equal(job.body.provider, ag.body.id);
+  const wh = await api('POST', '/v1/agents', { name: 'Hook Agent', description: 'Webhook agent', connection: { kind: 'webhook', url: 'https://hook.example.com/opcode' }, offerings: [{ key: 'hook_job', description: 'Job', price: '1', slaMinutes: 5 }] }, A);
+  assert.equal(wh.body.endpoint, 'configured');
+  const l = await api('POST', '/v1/launches', { type: 'standard', name: 'Desk Remote', symbol: 'DESKR', preset: 'fair', agentId: ag.body.id }, A);
+  assert.equal(l.status, 200, JSON.stringify(l.body));
+  assert.equal((await api('POST', '/v1/launches', { type: 'standard', name: 'Not Mine', symbol: 'NOTM', preset: 'fair', agentId: ag.body.id }, B)).status, 403);
+});

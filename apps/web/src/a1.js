@@ -437,13 +437,13 @@ function render(){
   route = parse();
   if(['welcome','roadmap'].includes(route.name)) route = {name:'home', jump:route.name==='roadmap'?'roadmap':null};
   const pub = {home:homeView, whitepaper:paperView, mint:mintView, tokens:mintView, token:tokenView, presale:launchView, launch:launchView, axp:axpView, agent:agentView};
-  const priv = {points:pointsView, pax:paxView, create:createView, newagent:newAgentView, profile:profileView};
+  const priv = {points:pointsView, pax:paxView, create:createView, newagent:newAgentView, join:joinAgentView, profile:profileView};
   let view = pub[route.name] || (S.session ? priv[route.name] : null);
   if(!view && priv[route.name]) view = gateView;
   shell(view || homeView);
 }
 function shell(view){
-  const sess = S.session, cur = route.name==='points' ? 'profile' : ['token','create','mint','presale','launch'].includes(route.name) ? 'tokens' : route.name==='agent'||route.name==='newagent' ? 'axp' : route.name;
+  const sess = S.session, cur = route.name==='points' ? 'profile' : ['token','create','mint','presale','launch'].includes(route.name) ? 'tokens' : route.name==='agent'||route.name==='newagent'||route.name==='join' ? 'axp' : route.name;
   root.innerHTML = `
   <header class="top"><div class="wrap top-in">
     <a class="brand" href="#home" aria-label="Opcode home"><svg class="wordsvg" viewBox="0 -27 299 94" role="img" aria-label="opcode"><g fill="none" stroke="currentColor" stroke-width="9.0" stroke-linecap="butt" stroke-linejoin="miter"><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z" transform="translate(0 0)"/><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z" transform="translate(48 0)"/><path d="M4.5 0V66" transform="translate(48 0)"/><path d="M33.5 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H33.5" transform="translate(96 0)"/><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z" transform="translate(139 0)"/><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z" transform="translate(187 0)"/><path d="M35.5 -26V40" transform="translate(187 0)"/><path d="M4.5 20.5H35.5V17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H34.5" transform="translate(235 0)"/></g><rect x="283" y="0" width="16" height="40" fill="#FF5B1F"/></svg><span class="pv" title="${window.OpcodeAPI&&OpcodeAPI.enabled?'Connected to '+esc(OpcodeAPI.base):'Preview: sample markets and a sandbox balance; nothing is sent on-chain'}">${window.OpcodeAPI&&OpcodeAPI.enabled?'API':'Preview'}</span></a>
