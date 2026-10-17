@@ -1203,6 +1203,42 @@ main{padding:28px 0 96px}
 :root[data-theme="dark"] .ag-status{box-shadow:0 0 0 3px rgba(0,0,0,.4),0 0 12px var(--up)}
 :root[data-theme="dark"] .axp-face{box-shadow:0 10px 30px -12px rgba(0,0,0,.7)}
 @media (prefers-reduced-motion:reduce){.dsc-a2a-edge,.dsc-node.ping .dsc-art,.dsc-log li{animation:none}}
+
+/* ================= mobile shell v2 =================
+   One home for the account: the "Me" tab opens the account sheet. The top bar carries the balance, search and alerts. */
+.mbal,.msrch{display:none}
+@media (max-width:980px){
+  .acct{display:none!important}
+  .top{z-index:45}
+  .msrch{display:inline-grid}
+  .mbal{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--line2);background:var(--p2);color:var(--ink);text-decoration:none;font-size:13.5px;white-space:nowrap}
+  .mbal svg{width:16px;height:16px;color:var(--acc)}
+  .mbal b{font-family:var(--mono);font-weight:600;letter-spacing:-.02em}
+  .mbal span{color:var(--mut);font-size:11.5px}
+  .top-r{gap:6px}
+  .top-r .ibtn{width:38px;height:38px}
+  .hide-m{display:none}
+  .bnav{padding:0 6px env(safe-area-inset-bottom,0px)!important;align-items:end;box-shadow:0 -10px 30px -12px rgba(0,0,0,.6)}
+  .bnav a,.bnav button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;padding:9px 0 8px;min-height:58px;font:500 11px/1.1 var(--sans);color:var(--mut);text-decoration:none;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .bnav a.on,.bnav button.on{color:var(--ink)!important}
+  .bnav a.on::before,.bnav button.on::before{content:"";position:absolute;top:0;left:50%;width:22px;height:2px;border-radius:0 0 2px 2px;background:var(--acc);transform:translateX(-50%)}
+  .bnav svg{width:21px;height:21px}
+  .bnav .av{width:24px;height:24px;box-shadow:0 0 0 1.5px var(--line3)}
+  .bnav button.on .av{box-shadow:0 0 0 2px var(--acc)}
+  .bnav a.bn-pax{color:var(--ink)}
+  .bnav a.bn-pax::before{display:none}
+  .bn-orb{display:grid;place-items:center;width:46px;height:46px;margin-top:-20px;border-radius:16px;background:linear-gradient(160deg,#FF7A45,#E5470F);color:#fff;box-shadow:0 0 0 4px var(--p1),0 10px 24px -6px rgba(255,91,31,.6)}
+  .bn-orb svg{width:22px;height:22px}
+  .bnav a.bn-pax.on .bn-orb{box-shadow:0 0 0 4px var(--p1),0 0 0 6px rgba(255,91,31,.35),0 10px 24px -6px rgba(255,91,31,.7)}
+  /* account + alerts as bottom sheets */
+  .menu.sheet-m{left:0!important;right:0!important;bottom:0!important;border-radius:22px 22px 0 0!important;padding:18px 10px calc(14px + env(safe-area-inset-bottom,0px))!important;max-height:82dvh;z-index:60;box-shadow:0 0 0 100vmax rgba(0,0,0,.55),0 -20px 40px rgba(0,0,0,.4)!important;animation:sheetUp .22s ease-out}
+  .menu.sheet-m::before{content:"";position:absolute;top:7px;left:50%;width:38px;height:4px;border-radius:2px;background:var(--line3);transform:translateX(-50%)}
+  .menu.sheet-m .mi{min-height:48px;font-size:15px}
+  @keyframes sheetUp{from{transform:translateY(24px);opacity:.4}}
+}
+@media (max-width:380px){ .mbal span{display:none} }
+@media (prefers-reduced-motion:reduce){ .menu.sheet-m{animation:none} }
+@media (max-width:980px){ .bnav .bn-orb .i,.bnav .bn-orb svg{color:#fff!important} }
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <symbol id="fmark" viewBox="0 0 120 120"><rect width="120" height="120" rx="14" fill="#09090A"/><rect x="1" y="1" width="118" height="118" rx="13" fill="none" stroke="#2C2C32" stroke-width="2"/><path d="M30 6v4M30 110v4" stroke="#3A3A41" stroke-width="1.2"/><path d="M45 6v4M45 110v4" stroke="#3A3A41" stroke-width="1.2"/><path d="M60 6v4M60 110v4" stroke="#3A3A41" stroke-width="1.2"/><path d="M75 6v4M75 110v4" stroke="#3A3A41" stroke-width="1.2"/><path d="M90 6v4M90 110v4" stroke="#3A3A41" stroke-width="1.2"/><g transform="translate(28.0 28.0)"><g fill="none" stroke="#F1EFE9" stroke-width="9.0" stroke-linecap="butt"><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z"/><path d="M4.5 0V66"/></g><rect x="48" y="0" width="16" height="40" fill="#FF5B1F"/></g></symbol></defs></svg>
@@ -1979,7 +2015,7 @@ function shell(view){
   <header class="top"><div class="wrap top-in">
     <a class="brand" href="#home" aria-label="Opcode home"><svg class="wordsvg" viewBox="0 -27 299 94" role="img" aria-label="opcode"><g fill="none" stroke="currentColor" stroke-width="9.0" stroke-linecap="butt" stroke-linejoin="miter"><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z" transform="translate(0 0)"/><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z" transform="translate(48 0)"/><path d="M4.5 0V66" transform="translate(48 0)"/><path d="M33.5 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H33.5" transform="translate(96 0)"/><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z" transform="translate(139 0)"/><path d="M35.5 17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H23.0A12.5 12.5 0 0 0 35.5 23.0Z" transform="translate(187 0)"/><path d="M35.5 -26V40" transform="translate(187 0)"/><path d="M4.5 20.5H35.5V17.0A12.5 12.5 0 0 0 23.0 4.5H17.0A12.5 12.5 0 0 0 4.5 17.0V23.0A12.5 12.5 0 0 0 17.0 35.5H34.5" transform="translate(235 0)"/></g><rect x="283" y="0" width="16" height="40" fill="#FF5B1F"/></svg><span class="pv" title="${window.OpcodeAPI&&OpcodeAPI.enabled?'Connected to '+esc(OpcodeAPI.base):'Preview: sample markets and a sandbox balance; nothing is sent on-chain'}">${window.OpcodeAPI&&OpcodeAPI.enabled?'API':'Preview'}</span></a>
     <nav class="nav" aria-label="Main">${NAV.map(n=>`<a href="#${n[0]}" class="${cur===n[0]?'on':''}" ${cur===n[0]?'aria-current="page"':''}>${n[1]}</a>`).join('')}</nav>
-    <div class="top-r"><button class="srch" id="srch" aria-label="Search">${I.search}<span>Search</span><kbd>⌘K</kbd></button>${sess ? `<div class="rel"><button class="ibtn" id="bell" aria-label="Notifications">${I.bell}<span class="cnt" id="bellcnt" ${S.unread?'':'hidden'}>${S.unread}</span></button><div class="menu sheet-m" id="bellmenu" hidden></div></div><div class="rel"><button class="acct" id="acct" aria-label="Account menu">${av(sess.address,null,'round')}<span class="acct-t"><b>${esc(displayName())}</b><em id="topbal">${f(S.wallet)} USDC</em></span>${I.chev}</button><div class="menu sheet-m" id="acctmenu" hidden></div></div>` : `<button class="btn pri" id="gconnect">Connect wallet</button>`}</div>
+    <div class="top-r"><button class="srch" id="srch" aria-label="Search">${I.search}<span>Search</span><kbd>⌘K</kbd></button><button class="ibtn msrch" id="msrch" aria-label="Search">${I.search}</button>${sess ? `<a class="mbal" href="#profile" aria-label="Wallet balance">${I.wallet}<b id="topbal2">${f(S.wallet)}</b><span>USDC</span></a><div class="rel"><button class="ibtn" id="bell" aria-label="Notifications">${I.bell}<span class="cnt" id="bellcnt" ${S.unread?'':'hidden'}>${S.unread}</span></button><div class="menu sheet-m" id="bellmenu" hidden></div></div><div class="rel"><button class="acct" id="acct" aria-label="Account menu">${av(sess.address,null,'round')}<span class="acct-t"><b>${esc(displayName())}</b><em id="topbal">${f(S.wallet)} USDC</em></span>${I.chev}</button><div class="menu sheet-m" id="acctmenu" hidden></div></div>` : `<button class="btn pri" id="gconnect">Connect<span class="hide-m"> wallet</span></button>`}</div>
   </div>
   <div class="tape"><div class="tape-in"><div class="run" id="tape"></div></div><div class="src" id="tapesrc"></div></div></header>
   ${sess && sess.chainOk===false ? `<div class="netbar"><div class="wrap"><span>Your wallet is on another network. Opcode runs on Arc Mainnet (chain 5042).</span><button class="btn sm pri" id="fixnet">Switch to Arc</button></div></div>` : ''}
@@ -1994,11 +2030,13 @@ function shell(view){
     </div>
     <div class="ft-bot"><span>Opcode preview. Sample markets and a sandbox balance; nothing is sent on-chain.</span><span>Not investment advice.</span></div>
   </div></footer>
-  <nav class="bnav" aria-label="Mobile">${[['home','Home',I.home],...NAV].map(n=>`<a href="#${n[0]}" class="${cur===n[0]?'on':''}">${n[2]}${n[1]}</a>`).join('')}${sess?`<a href="#profile" class="${['profile','points'].includes(cur)?'on':''}">${av(sess.address,null,'round')}Me</a>`:`<a href="#" id="bn-c">${I.user}Sign in</a>`}</nav>`;
+  <nav class="bnav" aria-label="Mobile">${[['home','Home',I.home],...NAV].map(n=>`<a href="#${n[0]}" class="${cur===n[0]?'on':''}${n[0]==='pax'?' bn-pax':''}" ${cur===n[0]?'aria-current="page"':''}>${n[0]==='pax'?`<span class="bn-orb">${n[2]}</span>`:n[2]}${n[1]}</a>`).join('')}${sess?`<button type="button" id="bn-me" class="${['profile','points'].includes(cur)?'on':''}" aria-label="Account" aria-haspopup="menu">${av(sess.address,null,'round')}Me</button>`:`<a href="#" id="bn-c">${I.user}Sign in</a>`}</nav>`;
   if(sess){ $('#bell').onclick = e => { e.stopPropagation(); toggleMenu('bell'); }; $('#acct').onclick = e => { e.stopPropagation(); toggleMenu('acct'); }; const fx = $('#fixnet'); if(fx) fx.onclick = async () => { try{ await ensureArc(sess.provider); await refreshLive(); render(); }catch(e){ toast('Switch was declined'); } }; }
   else $('#gconnect').onclick = openConnect;
   $('#srch').onclick = () => { if(S.session) openCmdk(); else openConnect(); };
   const bnc = $('#bn-c'); if(bnc) bnc.onclick = e => { e.preventDefault(); openConnect(); };
+  const bnm = $('#bn-me'); if(bnm) bnm.onclick = e => { e.stopPropagation(); toggleMenu('acct'); };
+  $('#msrch').onclick = () => { if(S.session) openCmdk(); else openConnect(); };
   paintTape();
   view($('#view'));
   if(route.jump){ const j = document.getElementById(route.jump); if(j) j.scrollIntoView(); } else window.scrollTo(0,0);
@@ -2016,12 +2054,12 @@ function paintTape(){
   el.innerHTML = items + items;
   if(src) src.innerHTML = LIVE.ok ? `<span class="dot"></span>Live via DexScreener, ${ago(LIVE.at)} ago` : `<span class="dot" style="background:var(--dim)"></span>Sample prices`;
 }
-function paintTop(){ const b = $('#topbal'); if(b) b.textContent = f(S.wallet)+' USDC'; const c = $('#bellcnt'); if(c){ c.textContent = S.unread; c.hidden = !S.unread; } }
+function paintTop(){ const b = $('#topbal'); if(b) b.textContent = f(S.wallet)+' USDC'; const b2 = $('#topbal2'); if(b2) b2.textContent = f(S.wallet); const c = $('#bellcnt'); if(c){ c.textContent = S.unread; c.hidden = !S.unread; } }
 function isDark(){ return document.documentElement.dataset.theme==='dark'; }
 /* Opcode ships one theme: dark. */
 document.documentElement.dataset.theme = 'dark';
 function closeMenus(){ ['bellmenu','acctmenu'].forEach(id => { const m = document.getElementById(id); if(m) m.hidden = true; }); }
-document.addEventListener('click', e => { if(!e.target.closest('.menu') && !e.target.closest('#bell') && !e.target.closest('#acct')) closeMenus(); });
+document.addEventListener('click', e => { if(!e.target.closest('.menu') && !e.target.closest('#bell') && !e.target.closest('#acct') && !e.target.closest('#bn-me')) closeMenus(); });
 function toggleMenu(which){
   const m = document.getElementById(which+'menu'), open = m.hidden; closeMenus(); if(!open) return;
   const s = S.session;

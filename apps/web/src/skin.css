@@ -577,3 +577,39 @@ main{padding:28px 0 96px}
 :root[data-theme="dark"] .ag-status{box-shadow:0 0 0 3px rgba(0,0,0,.4),0 0 12px var(--up)}
 :root[data-theme="dark"] .axp-face{box-shadow:0 10px 30px -12px rgba(0,0,0,.7)}
 @media (prefers-reduced-motion:reduce){.dsc-a2a-edge,.dsc-node.ping .dsc-art,.dsc-log li{animation:none}}
+
+/* ================= mobile shell v2 =================
+   One home for the account: the "Me" tab opens the account sheet. The top bar carries the balance, search and alerts. */
+.mbal,.msrch{display:none}
+@media (max-width:980px){
+  .acct{display:none!important}
+  .top{z-index:45}
+  .msrch{display:inline-grid}
+  .mbal{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--line2);background:var(--p2);color:var(--ink);text-decoration:none;font-size:13.5px;white-space:nowrap}
+  .mbal svg{width:16px;height:16px;color:var(--acc)}
+  .mbal b{font-family:var(--mono);font-weight:600;letter-spacing:-.02em}
+  .mbal span{color:var(--mut);font-size:11.5px}
+  .top-r{gap:6px}
+  .top-r .ibtn{width:38px;height:38px}
+  .hide-m{display:none}
+  .bnav{padding:0 6px env(safe-area-inset-bottom,0px)!important;align-items:end;box-shadow:0 -10px 30px -12px rgba(0,0,0,.6)}
+  .bnav a,.bnav button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;padding:9px 0 8px;min-height:58px;font:500 11px/1.1 var(--sans);color:var(--mut);text-decoration:none;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .bnav a.on,.bnav button.on{color:var(--ink)!important}
+  .bnav a.on::before,.bnav button.on::before{content:"";position:absolute;top:0;left:50%;width:22px;height:2px;border-radius:0 0 2px 2px;background:var(--acc);transform:translateX(-50%)}
+  .bnav svg{width:21px;height:21px}
+  .bnav .av{width:24px;height:24px;box-shadow:0 0 0 1.5px var(--line3)}
+  .bnav button.on .av{box-shadow:0 0 0 2px var(--acc)}
+  .bnav a.bn-pax{color:var(--ink)}
+  .bnav a.bn-pax::before{display:none}
+  .bn-orb{display:grid;place-items:center;width:46px;height:46px;margin-top:-20px;border-radius:16px;background:linear-gradient(160deg,#FF7A45,#E5470F);color:#fff;box-shadow:0 0 0 4px var(--p1),0 10px 24px -6px rgba(255,91,31,.6)}
+  .bn-orb svg{width:22px;height:22px}
+  .bnav a.bn-pax.on .bn-orb{box-shadow:0 0 0 4px var(--p1),0 0 0 6px rgba(255,91,31,.35),0 10px 24px -6px rgba(255,91,31,.7)}
+  /* account + alerts as bottom sheets */
+  .menu.sheet-m{left:0!important;right:0!important;bottom:0!important;border-radius:22px 22px 0 0!important;padding:18px 10px calc(14px + env(safe-area-inset-bottom,0px))!important;max-height:82dvh;z-index:60;box-shadow:0 0 0 100vmax rgba(0,0,0,.55),0 -20px 40px rgba(0,0,0,.4)!important;animation:sheetUp .22s ease-out}
+  .menu.sheet-m::before{content:"";position:absolute;top:7px;left:50%;width:38px;height:4px;border-radius:2px;background:var(--line3);transform:translateX(-50%)}
+  .menu.sheet-m .mi{min-height:48px;font-size:15px}
+  @keyframes sheetUp{from{transform:translateY(24px);opacity:.4}}
+}
+@media (max-width:380px){ .mbal span{display:none} }
+@media (prefers-reduced-motion:reduce){ .menu.sheet-m{animation:none} }
+@media (max-width:980px){ .bnav .bn-orb .i,.bnav .bn-orb svg{color:#fff!important} }
