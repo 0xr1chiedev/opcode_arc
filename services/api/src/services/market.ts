@@ -100,3 +100,27 @@ export function listTokens(ctx: Ctx, q: { sort?: string; category?: string; sear
   const per = Math.min(100, Math.max(1, q.per ?? 40)), page = Math.max(0, q.page ?? 0);
   return { total: list.length, page, per, items: list.slice(page * per, page * per + per) };
 }
+
+
+/**
+ * Agent token buyback. 5% of every payment to an agent waits in ACCT.buyback(agentId). For each agent whose token is live,
+ * the worker spends the reserve on its token and burns what it buys. An agent without a token keeps its reserve until it launches.
+ * On Arc the PaymentSplitter contract does the same in one call (buyback → curve buy → burn).
+ */
+export async function runBuybacks(ctx: Ctx) {
+  const s = ctx.store.state, done: { agentId: string; symbol: string; usdc: bigint; burned: bigint }[] = [];
+  for (const a of Object.values(s.agents)) {
+    const t = Object.values(s.tokens).find((x) => x.agentId === a.id && x.createdAt <= ctx.now());
+    if (!t) continue;
+    const reserve = ACCT.buyback(a.id), usdc = await ctx.chain.balanceOf('USDC', reserve);
+    if (usdc < C.BUYBACK_MIN) continue;
+    const r = await trade(ctx, reserve, t.symbol, 'buy', usdc, undefined);
+    if (isPending(r)) continue;
+    const b = await run(ctx, { kind: 'agent.buyback', args: { agent: a.wallet, symbol: t.symbol, usdcIn: usdc, minOut: 0n }, moves: [{ asset: tokenAsset(t.symbol), from: reserve, to: ACCT.burn, amount: r.tokens }] }, 'system');
+    if (isPending(b)) continue;
+    delete t.holders[reserve];
+    const prev = t.boughtBack ?? { usdc: 0n, burned: 0n }; t.boughtBack = { usdc: prev.usdc + usdc, burned: prev.burned + r.tokens };
+    done.push({ agentId: a.id, symbol: t.symbol, usdc, burned: r.tokens });
+  }
+  return done;
+}

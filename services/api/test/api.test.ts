@@ -79,7 +79,7 @@ test('trading: quote matches execution, fees split 70/30, USDC is conserved, sli
   const list = await api('GET', '/v1/tokens?sort=top&per=2'); assert.equal(list.body.items[0].symbol, 'ORCA'); assert.equal(list.body.items[0].graduated, true);
 });
 
-test('AXP job through PAX: open → budget → fund from PAX → delivered → approved; 95/5 payout', async () => {
+test('AXP job through PAX: open → budget → fund from PAX → delivered → approved; 90/5/5 payout and LUMEN buyback', async () => {
   const pick = await api('POST', '/v1/pax/messages', { text: 'Review my rental contract for red flags' }, A);
   assert.equal(pick.body.replies[0].card.type, 'pick'); assert.equal(pick.body.replies[0].card.results[0].agentId, 'lumen');
   const missing = await api('POST', '/v1/jobs', { agentId: 'lumen', offering: 'contract_summary', requirements: { document: 'lease.pdf' } }, A);
@@ -94,7 +94,12 @@ test('AXP job through PAX: open → budget → fund from PAX → delivered → a
   advance(6_000); await app.tick();
   const sub = await api('GET', `/v1/jobs/${j.body.id}`); assert.equal(sub.body.phase, 'submitted'); assert.match(sub.body.deliverable, /lease\.pdf/);
   const done = await api('POST', `/v1/jobs/${j.body.id}/complete`, {}, A); assert.equal(done.body.phase, 'completed');
-  assert.equal(usdcOf(app.ctx.store.state.agents.lumen!.wallet), 475_000n); assert.equal(usdcOf(ACCT.protocol), 25_000n); assert.equal(usdcOf(ACCT.escrow(j.body.id)), 0n);
+  assert.equal(usdcOf(app.ctx.store.state.agents.lumen!.wallet), 450_000n); assert.equal(usdcOf(ACCT.protocol), 25_000n); assert.equal(usdcOf(ACCT.escrow(j.body.id)), 0n);
+  assert.equal(usdcOf(ACCT.buyback('lumen')), 25_000n, '5% waits in the buyback reserve');
+  const burnBefore = chain.balanceSync(tokenAsset('LUMEN'), ACCT.burn);
+  await app.tick();
+  assert.equal(usdcOf(ACCT.buyback('lumen')), 0n, 'reserve spent'); assert.ok(chain.balanceSync(tokenAsset('LUMEN'), ACCT.burn) > burnBefore, 'bought LUMEN was burned');
+  assert.equal(app.ctx.store.state.tokens.LUMEN!.boughtBack!.usdc, 25_000n);
 });
 
 test('standard launch: validation, modules charged, pre-buy filled before anti-sniper; others pay the sniper tax', async () => {
@@ -221,7 +226,7 @@ test('A2A: agent cards for discovery; an agent hires another agent over JSON-RPC
   assert.equal((await api('POST', `/v1/agents/${ag.body.id}/withdraw`, { amount: '1' }, B)).status, 403);
 });
 
-test('x402: 402 with requirements, signed EIP-3009 retry gets the result, 95/5 split, replay refused', async () => {
+test('x402: 402 with requirements, signed EIP-3009 retry gets the result, 90/5/5 split, replay refused', async () => {
   const path = '/v1/x402/agents/scout/alpha_ping', body = { requirements: { keyword: 'arc' } };
   assert.equal((await rawApi('POST', path, { requirements: {} })).status, 422, 'inputs are checked before asking for payment');
   assert.equal((await rawApi('POST', '/v1/x402/agents/scout/research_report', body)).body.error.code, 'NOT_X402');
@@ -235,7 +240,7 @@ test('x402: 402 with requirements, signed EIP-3009 retry gets the result, 95/5 s
   assert.equal(ok.status, 200, JSON.stringify(ok.body)); assert.equal(ok.body.status, 'completed'); assert.match(ok.body.output, /arc/);
   const receipt = C.x402.decodeHeader<any>(ok.headers.get('payment-response')); assert.equal(receipt.success, true); assert.equal(receipt.network, 'eip155:5042');
   assert.equal(before - usdcOf(alice.address), 50_000n);
-  assert.equal(usdcOf(app.ctx.store.state.agents.scout!.wallet) - agentBefore, 47_500n); assert.equal(usdcOf('protocol') - protoBefore, 2_500n);
+  assert.equal(usdcOf(app.ctx.store.state.agents.scout!.wallet) - agentBefore, 45_000n); assert.equal(usdcOf('protocol') - protoBefore, 2_500n); assert.ok(usdcOf(ACCT.buyback('scout')) >= 2_500n);
   const replay = await rawApi('POST', path, body, { 'PAYMENT-SIGNATURE': header });
   assert.equal(replay.status, 402); assert.equal(replay.body.error, 'nonce_already_used');
   const v1 = await rawApi('POST', path, body, { 'X-PAYMENT': (await signPayment(alice, req, clock, keccak256(toHex('x402-call-2')))).header });

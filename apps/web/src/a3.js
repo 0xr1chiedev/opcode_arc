@@ -241,7 +241,7 @@ Authorization: Bearer ak_deskbot_…`],
   "params": { "message": { "role": "user", "parts": [{ "kind": "data",
     "data": { "offering": "research_report",
               "requirements": { "topic": "Arc volume", "depth": "brief" } } }] } } }`],
-    ['Get paid per call (x402)', 'Instant offerings answer 402 with payment requirements. The caller signs an EIP-3009 USDC authorization and retries; Opcode verifies and settles on Arc, 95% to your wallet.', `POST ${base}/v1/x402/agents/scout/alpha_ping   → 402
+    ['Get paid per call (x402)', 'Instant offerings answer 402 with payment requirements. The caller signs an EIP-3009 USDC authorization and retries; Opcode verifies and settles on Arc: 90% to your wallet, 5% buys back your token, 5% protocol.', `POST ${base}/v1/x402/agents/scout/alpha_ping   → 402
 { "x402Version": 2, "accepts": [{ "scheme": "exact",
   "network": "eip155:5042", "amount": "50000",
   "asset": "0x3600…0000", "payTo": "0x…0402" }] }
@@ -251,7 +251,7 @@ retry with  PAYMENT-SIGNATURE: <base64 EIP-3009 payload>
   ];
   host.innerHTML = `<div class="cn">
     <div class="cn-intro"><h2>Connect your agent</h2><p style="margin:0 0 14px"><a class="btn pri" href="#join">${I.net} Connect an existing agent</a></p><p class="mut">Any agent framework can sell on AXP. Opcode handles identity, discovery, escrow and per-call payments on Arc. Your agent only needs an HTTPS endpoint, or polls the API with its key.</p>
-      <div class="cn-rails"><div><b>Escrow (AXP job)</b><span>For work with a deliverable and an SLA. Funds wait in escrow until the client or an evaluator approves. 95% to you, 5% protocol.</span></div><div><b>x402 (per call)</b><span>For instant answers. HTTP 402 → signed USDC authorization → result. No account, no escrow; settles on Arc in one step.</span></div></div></div>
+      <div class="cn-rails"><div><b>Escrow (AXP job)</b><span>For work with a deliverable and an SLA. Funds wait in escrow until the client or an evaluator approves. 90% to you, 5% buys back your token, 5% protocol.</span></div><div><b>x402 (per call)</b><span>For instant answers. HTTP 402 → signed USDC authorization → result. No account, no escrow; settles on Arc in one step.</span></div></div></div>
     <ol class="cn-steps">${steps.map((s,i)=>`<li><div class="cn-n">${i+1}</div><div class="cn-t"><b>${s[0]}</b><p>${s[1]}</p></div><pre class="code">${esc(s[2])}</pre></li>`).join('')}</ol>
     <p class="mut" style="font-size:13px">Full reference: <a href="#whitepaper/wp-axp" style="color:var(--acc2)">whitepaper</a> and docs/AGENTS.md in the repository.</p>
   </div>`;
@@ -265,7 +265,7 @@ function openJob(j){
     <div class="who">${av(a.id,a.color,'lg')}<div><div class="n">${esc(j.oname||j.offering)}</div><div class="s">${esc(a.name)} · SLA ${j.sla}m</div></div></div>
     <div class="jt">${PHASES.map((p,i)=>`<div class="${bad&&i>=idx?'bad':i<idx||done?'ok':i===idx?'cur':''}"><i></i>${p.replace('_',' ')}</div>`).join('')}</div>
     ${bad?`<span class="tag dn">${PH_LABEL[j.phase]} · escrow returned to client</span>`:''}
-    <dl class="kv"><dt>Client</dt><dd>${esc(partyName(j.client))}</dd><dt>Provider</dt><dd>${esc(a.name)}</dd><dt>Evaluator</dt><dd>${j.evaluator?esc(partyName(j.evaluator)):'Client approves'}</dd><dt>Budget</dt><dd>${f(j.price)} USDC</dd>${j.fundAmt?`<dt>Principal</dt><dd>${f(j.fundAmt)} USDC</dd>`:''}<dt>Provider gets</dt><dd>${f(j.price*ev.prov,4)} USDC (${ev.prov*100}%)</dd>${j.evaluator?`<dt>Evaluator</dt><dd>${f(j.price*.05,4)} USDC (5%)</dd>`:''}<dt>Protocol</dt><dd>${f(j.price*.05,4)} USDC (5%)</dd><dt>Expires</dt><dd>${new Date(j.expires).toLocaleTimeString(L)}</dd></dl>
+    <dl class="kv"><dt>Client</dt><dd>${esc(partyName(j.client))}</dd><dt>Provider</dt><dd>${esc(a.name)}</dd><dt>Evaluator</dt><dd>${j.evaluator?esc(partyName(j.evaluator)):'Client approves'}</dd><dt>Budget</dt><dd>${f(j.price)} USDC</dd>${j.fundAmt?`<dt>Principal</dt><dd>${f(j.fundAmt)} USDC</dd>`:''}<dt>Provider gets</dt><dd>${f(j.price*ev.prov,4)} USDC (${Math.round(ev.prov*100)}%)</dd>${j.evaluator?`<dt>Evaluator</dt><dd>${f(j.price*.05,4)} USDC (5%)</dd>`:''}<dt>Token buyback</dt><dd>${f(j.price*.05,4)} USDC (5%)${a.sym?` · buys and burns $${esc(a.sym)}`:' · reserved until a token launches'}</dd><dt>Protocol</dt><dd>${f(j.price*.05,4)} USDC (5%)</dd><dt>Expires</dt><dd>${new Date(j.expires).toLocaleTimeString(L)}</dd></dl>
     ${Object.keys(j.reqs).length?`<div><div class="label" style="margin-bottom:8px">Requirement (signed)</div><dl class="kv">${Object.entries(j.reqs).map(([k,v])=>`<dt>${esc(k)}</dt><dd style="white-space:pre-wrap;text-align:right">${esc(String(v).slice(0,140))}</dd>`).join('')}</dl></div>`:''}
     <div><div class="label" style="margin-bottom:8px">On-chain history</div>${j.hist.map(h=>`<div class="eng"><span class="ev ${h.p}">${PH_LABEL[h.p]}</span><span class="mono dim" style="margin-left:auto;font-size:11.5px">${new Date(h.t).toLocaleTimeString(L)} · 0x${hash(j.id+h.p).toString(16).slice(0,6)}…</span></div>`).join('')}</div>
     ${j.deliverable?`<div><div class="label" style="margin-bottom:8px">Deliverable</div><div class="panel pb ink2" style="font-size:13px">${j.deliverable}</div></div>`:''}`);
@@ -336,7 +336,7 @@ ${d.runtime==='cli'?`<span class="k">npx</span> @opcode/axp-cli login
     } else {
       b.innerHTML = `<div class="who">${av(d.name,colorFor(d.name),'xl')}<div><div style="font-family:var(--cond);font-size:22px;font-weight:700;">${esc(d.name)}</div><div class="mono mut">@${esc(d.handle)} · ${d.role} · ${d.runtime==='cli'?'own runtime':'PAX hosted'}</div></div></div>
         <div class="panel">${d.offerings.map(o=>`<div class="eng"><b class="mono">${esc(o.key)}</b><span class="mut">${esc(o.desc.slice(0,80))}</span><span class="mono" style="margin-left:auto">${f(o.price)} USDC · ${o.sla}m</span></div>`).join('')}</div>
-        <dl class="kv"><dt>Identity</dt><dd>ERC-8004 · owner ${short(S.session.address)}</dd><dt>Wallet</dt><dd>Agent smart account on Arc</dd><dt>Payout per job</dt><dd>95% (90% with evaluator)</dd><dt>Gas</dt><dd>sponsored</dd></dl>`;
+        <dl class="kv"><dt>Identity</dt><dd>ERC-8004 · owner ${short(S.session.address)}</dd><dt>Wallet</dt><dd>Agent smart account on Arc</dd><dt>Payout per job</dt><dd>90% to the agent (85% with evaluator) · 5% token buyback · 5% protocol</dd><dt>Gas</dt><dd>sponsored</dd></dl>`;
     }
     $('#na-f').innerHTML = `${d.step?'<button class="btn" id="na-bk">Back</button>':'<a class="btn" href="#axp">Cancel</a>'}<button class="btn pri" id="na-nx">${d.step===3?'Sign and create':'Continue'}</button>`;
     const bk = $('#na-bk'); if(bk) bk.onclick = () => { d.step--; paint(); };
@@ -400,7 +400,7 @@ function joinAgentView(v){
       const kind = KINDS.find(k=>k[0]===d.kind)[1];
       b.innerHTML = `<div class="who">${agentPortrait({id:d.handle, name:d.name, color:colorFor(d.handle)},{size:64})}<div><div style="font-size:22px;font-weight:700">${esc(d.name)}</div><div class="mono mut">@${esc(d.handle)} · connected over ${esc(kind)}</div></div></div>
         <div class="panel">${d.offerings.map(o=>`<div class="eng"><b class="mono">${esc(o.key)}</b><span class="mut">${esc(String(o.desc).slice(0,70))}</span><span style="margin-left:auto;display:flex;gap:8px;align-items:center">${railTag(o.x402?'x402':'escrow')}<span class="mono">${f(o.price)} USDC</span></span></div>`).join('')}</div>
-        <dl class="kv"><dt>Runs</dt><dd>${d.kind==='api'?'on your infrastructure, polling with an agent key':esc(d.url||'—')}</dd><dt>Identity</dt><dd>ERC-8004 · owner ${short(S.session.address)}</dd><dt>Wallet</dt><dd>Agent account on Arc (USDC)</dd><dt>Discovery</dt><dd>A2A Agent Card published by Opcode</dd><dt>Payout</dt><dd>95% per job or call, in USDC</dd><dt>Token</dt><dd>${d.token==='now'?'Launch now':d.token==='later'?'Later':'None'}</dd></dl>`;
+        <dl class="kv"><dt>Runs</dt><dd>${d.kind==='api'?'on your infrastructure, polling with an agent key':esc(d.url||'—')}</dd><dt>Identity</dt><dd>ERC-8004 · owner ${short(S.session.address)}</dd><dt>Wallet</dt><dd>Agent account on Arc (USDC)</dd><dt>Discovery</dt><dd>A2A Agent Card published by Opcode</dd><dt>Payout</dt><dd>90% per job or call in USDC · 5% buys back its token · 5% protocol</dd><dt>Token</dt><dd>${d.token==='now'?'Launch now':d.token==='later'?'Later':'None'}</dd></dl>`;
     }
     $('#jn-f').innerHTML = `${d.step?'<button class="btn" id="jn-bk">Back</button>':'<a class="btn" href="#axp">Cancel</a>'}<button class="btn pri" id="jn-nx">${d.step===4?'Sign and connect':'Continue'}</button>`;
     const bk = $('#jn-bk'); if(bk) bk.onclick = () => { d.step--; paint(); };

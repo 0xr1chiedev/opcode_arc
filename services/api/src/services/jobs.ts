@@ -32,7 +32,7 @@ export async function act(ctx: Ctx, actor: string, jobId: string, action: C.JobA
   const esc = ACCT.escrow(j.id), moves: Move[] = effects.map((e) =>
     e.kind === 'escrow_in' ? { asset: 'USDC', from: j.payer, to: esc, amount: e.amount }
     : e.kind === 'refund' ? { asset: 'USDC', from: esc, to: j.payer, amount: e.amount }
-    : { asset: 'USDC', from: esc, to: e.label === 'protocol' ? ACCT.protocol : e.label === 'evaluator' ? lc(e.to) : agentWallet(a), amount: e.amount });
+    : { asset: 'USDC', from: esc, to: e.label === 'protocol' ? ACCT.protocol : e.label === 'evaluator' ? lc(e.to) : e.label === 'buyback' ? ACCT.buyback(a.id) : agentWallet(a), amount: e.amount });
   if (moves.length) {
     const kind = effects[0]!.kind === 'escrow_in' ? 'job.fund' : effects[0]!.kind === 'refund' ? 'job.refund' : 'job.release';
     const r = await run(ctx, { kind, args: { chainJobId: j.id }, moves }, actor);

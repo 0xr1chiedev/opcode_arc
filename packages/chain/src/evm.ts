@@ -54,6 +54,7 @@ export class ArcEvmChain implements ChainAdapter {
       case 'presale.settle': return { to: this.need('presaleVault'), data: encodeFunctionData({ abi: PRESALE_VAULT_ABI, functionName: 'settle', args: [BigInt(a.chainPresaleId ?? 0)] }) };
       case 'x402.settle': { const sig = parseSignature(a.signature); const z = a.authorization; return { to: ARC_MAINNET.usdc, data: encodeFunctionData({ abi: ERC20_ABI, functionName: 'transferWithAuthorization', args: [z.from, z.to, BigInt(z.value), BigInt(z.validAfter), BigInt(z.validBefore), z.nonce, Number(sig.v ?? (sig.yParity + 27)), sig.r, sig.s] }) }; }
       case 'agent.withdraw': return { to: this.need('paymentSplitter'), data: encodeFunctionData({ abi: PAYMENT_SPLITTER_ABI, functionName: 'forward', args: [a.agent, a.amount, a.nonce ?? ('0x' + '0'.repeat(64))] }) };
+      case 'agent.buyback': return { to: this.need('paymentSplitter'), data: encodeFunctionData({ abi: PAYMENT_SPLITTER_ABI, functionName: 'buyback', args: [a.agent as `0x${string}`, this.tok(a.symbol as string), BigInt(a.usdcIn as bigint), BigInt((a.minOut as bigint) ?? 0n)] }) };
       case 'points.publish': return { to: this.need('pointsLedger'), data: encodeFunctionData({ abi: POINTS_LEDGER_ABI, functionName: 'publishRoot', args: [a.root, BigInt(a.epoch)] }) };
     }
   }

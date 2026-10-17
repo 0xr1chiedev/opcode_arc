@@ -68,8 +68,8 @@ test('anti-sniper: 99% → 1% linear over the window; sells only on "both"', () 
 
 test('fees: 70/30 trade split and AXP payouts', () => {
   assert.deepEqual(C.splitTradeFee(U('1')), { creator: 700_000n, treasury: 300_000n });
-  assert.deepEqual(C.splitJobPayout(U('0.5'), false), { provider: 475_000n, evaluator: 0n, protocol: 25_000n });
-  assert.deepEqual(C.splitJobPayout(U('0.5'), true), { provider: 450_000n, evaluator: 25_000n, protocol: 25_000n });
+  assert.deepEqual(C.splitJobPayout(U('0.5'), false), { provider: 450_000n, evaluator: 0n, buyback: 25_000n, protocol: 25_000n });
+  assert.deepEqual(C.splitJobPayout(U('0.5'), true), { provider: 425_000n, evaluator: 25_000n, buyback: 25_000n, protocol: 25_000n });
 });
 
 test('AXP job: full lifecycle with escrow effects and role checks', () => {
@@ -81,7 +81,7 @@ test('AXP job: full lifecycle with escrow effects and role checks', () => {
   j = C.transition(j, { type: 'submit', by: 'lumen', deliverable: 'ipfs://report' }, 3).job;
   const done = C.transition(j, { type: 'complete', by: '0xc' }, 4);
   assert.equal(done.job.phase, 'completed');
-  assert.deepEqual(done.effects.map((e) => [e.kind, (e as { amount: bigint }).amount]), [['pay', 475_000n], ['pay', 25_000n]]);
+  assert.deepEqual(done.effects.map((e) => [e.kind, (e as { amount: bigint }).amount]), [['pay', 450_000n], ['pay', 25_000n], ['pay', 25_000n]]);
   assert.throws(() => C.transition(done.job, { type: 'reject', by: '0xc' }, 5), /already completed/);
 });
 

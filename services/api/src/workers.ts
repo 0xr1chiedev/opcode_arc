@@ -4,6 +4,7 @@ import type { Ctx } from './ctx.ts';
 import { activateStandard, settle } from './services/launch.ts';
 import { act } from './services/jobs.ts';
 import { trackPosts } from './services/points.ts';
+import { runBuybacks } from './services/market.ts';
 
 /**
  * Background work, run on an interval in production and called directly in tests:
@@ -16,7 +17,7 @@ export async function tick(ctx: Ctx) {
   for (const p of Object.values(s.presales)) if (!p.settledAt && now >= p.endTs) await safe(() => settle(ctx, p.id));
   await safe(() => trackPosts(ctx));
   for (const j of Object.values(s.jobs)) if (!C.TERMINAL.includes(j.phase) && now >= j.expiresAt) await safe(() => act(ctx, 'system', j.id, { type: 'expire', by: 'system' }));
-  if (ctx.cfg.chainMode === 'sim') await simAgents(ctx, safe);
+  if (ctx.cfg.chainMode === 'sim') { await simAgents(ctx, safe); await safe(() => runBuybacks(ctx)); }
   return { errors };
 }
 

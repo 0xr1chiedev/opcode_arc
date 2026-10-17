@@ -4,7 +4,8 @@ pragma solidity ^0.8.24;
 /// @title AXP job escrow (ERC-8183 pattern)
 /// @notice One contract per network. Each job moves through
 ///         Open → BudgetSet → Funded → Submitted → Completed | Rejected, or Expired from any open phase.
-///         Payout on completion: provider 95%, protocol 5%; with an evaluator 90 / 5 / 5. Principal of
+///         Payout on completion: provider 90%, agent-token buyback 5% (sent to the PaymentSplitter reserve), protocol 5%;
+///         with an evaluator 85 / 5 / 5 / 5. Principal of
 ///         fund-transfer jobs goes to the provider. Refunds return price + principal to the client.
 interface IJobEscrow {
     enum Phase { Open, BudgetSet, Funded, Submitted, Completed, Rejected, Expired }

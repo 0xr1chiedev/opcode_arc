@@ -64,12 +64,12 @@ npm run test:web     # jsdom end-to-end tests of the UI (cd apps/web/tests && np
 
 The end-to-end API suite covers:
 - real wallet signatures, PAX deposits, trading with fee splits and USDC conservation, slippage
-- a full AXP job with 95/5 payout, and a standard launch with pre-buy and the anti-sniper decay
+- a full AXP job with the 90/5/5 payout and the agent token buyback, and a standard launch with pre-buy and the anti-sniper decay
 - a scheduled launch going live, points linking, scoring and rules, and a presale with the allocation, refund and burn math
 - the PAX launch assistant, user-owned agents acting as providers
 - A2A: an agent hiring another agent over JSON-RPC with its own key and wallet
 - connected agents: an agent running elsewhere joins AXP over A2A or a webhook, takes jobs without a token, and launches one later
-- x402: 402 requirements, a signed EIP-3009 retry, the 95/5 split, replay protection and the facilitator endpoints
+- x402: 402 requirements, a signed EIP-3009 retry, the 90/5/5 split, replay protection and the facilitator endpoints
 - Arc mode returning unsigned transactions or `501` until contracts exist
 
 ## What's in the product
@@ -77,7 +77,7 @@ The end-to-end API suite covers:
 | Part | What it does |
 |---|---|
 | **PAX** (Personal Agent eXecutor) | Build an agent from scratch and PAX hosts it on AXP (small creation fee for the AI). Also a chat agent with its own USDC account: hires agents, trades tokens, opens perps through agents, launches tokens by asking for the missing details. |
-| **AXP** (Agent Cross-talk Protocol) | The agent-to-agent market. Open to agents built on PAX and to **connected agents** that run anywhere (A2A Agent Card, signed webhook, or API key); a token is optional. Jobs: open → budget set → funded → submitted → completed / rejected / expired. Escrow; payout 95/5, or 90/5/5 with an evaluator. Agents have their own wallets and keys, publish A2A Agent Cards, talk JSON-RPC, and sell instant offerings per call over **x402** (EIP-3009 USDC). See [docs/AGENTS.md](docs/AGENTS.md). |
+| **AXP** (Agent Cross-talk Protocol) | The agent-to-agent market. Open to agents built on PAX and to **connected agents** that run anywhere (A2A Agent Card, signed webhook, or API key); a token is optional. Jobs: open → budget set → funded → submitted → completed / rejected / expired. Every payment: 90% agent, 5% buys back and burns the agent's token, 5% protocol (85/5/5/5 with an evaluator). Agents have their own wallets and keys, publish A2A Agent Cards, talk JSON-RPC, and sell instant offerings per call over **x402** (EIP-3009 USDC). See [docs/AGENTS.md](docs/AGENTS.md). |
 | **Launchpad: agent tokens** | USDC bonding curve scaled to the launch's curve share. Graduates at 42,000 USDC into a pool with LP locked for 10 years. 1% fee: 70% creator, 30% treasury. |
 | **Launch your agent token** | **Standard:** full tokenomics with vesting, anti-sniper, pre-buy, launch now or scheduled. **Presale:** raise from point holders first. |
 | **Presales** | Allocation = min(max per wallet, your points ÷ all points × raise). You pay min(deposit, allocation); the rest is refunded and the points burn. |

@@ -117,7 +117,9 @@ const priceAt = r => { const x = X0 + r; return x*x/K; };
 const outBuy = (r, u) => { const x = X0 + r; return K/x - K/(x+u); };
 const outSell = (r, amt) => { const x = X0 + r, y = K/x; return x - K/(y+amt); };
 const SNIPE = {0:'Off', 60:'60 sec', 600:'10 min', 5880:'98 min'};
-const ACP_FEE = {noEval:{prov:.95, proto:.05}, eval:{prov:.90, ev:.05, proto:.05}};
+/* Every AXP payment: 90% agent, 5% buys back (and burns) the agent's token, 5% protocol. Evaluator takes 5% from the agent's share. */
+const ACP_FEE = {noEval:{prov:.90, buy:.05, proto:.05}, eval:{prov:.85, ev:.05, buy:.05, proto:.05}};
+const provShare = j => j.evaluator ? ACP_FEE.eval.prov : ACP_FEE.noEval.prov;
 const PHASES = ['open','budget_set','funded','submitted','completed'];
 const PH_LABEL = {x402:'Paid · x402', open:'Job created', budget_set:'Budget set', funded:'Job funded', submitted:'Work submitted', completed:'Job completed', rejected:'Job rejected', expired:'Job expired'};
 const PERP_FEE = 0.00045 + 0.001;
@@ -279,7 +281,7 @@ function newJob(client, provider, offering, opts={}){
 function advance(j, phase){
   j.phase = phase; j.hist.push({p:phase, t:Date.now()});
   const a = AG(j.provider);
-  if(phase==='completed'){ a.stats.jobs++; a.stats.rev += j.price; a.stats.agdp += j.price + (j.fundAmt||0); if(j.evaluator) AG(j.evaluator) && (AG(j.evaluator).stats.rev += j.price*0.05); if(a.owner===S.session?.id){ a.earnedToday = (a.earnedToday||0) + j.price*(j.evaluator?.9:.95); S.wallet += j.price*(j.evaluator?.9:.95); log(a.id,'pay',`$ job #${j.id} completed · +${f(j.price*(j.evaluator?.9:.95),4)} USDC`); } }
+  if(phase==='completed'){ a.stats.jobs++; a.stats.rev += j.price; a.stats.agdp += j.price + (j.fundAmt||0); if(j.evaluator) AG(j.evaluator) && (AG(j.evaluator).stats.rev += j.price*0.05); const btk = a.sym && TK(a.sym); if(btk) btk.bb = (btk.bb||0) + j.price*ACP_FEE.noEval.buy; else a.bbReserve = (a.bbReserve||0) + j.price*ACP_FEE.noEval.buy; if(a.owner===S.session?.id){ a.earnedToday = (a.earnedToday||0) + j.price*provShare(j); S.wallet += j.price*provShare(j); log(a.id,'pay',`$ job #${j.id} completed · +${f(j.price*provShare(j),4)} USDC${btk?` · ${f(j.price*.05,4)} buys back $${btk.sym}`:''}`); } }
   if(phase==='rejected' || phase==='expired'){ a.stats.success = Math.max(80, a.stats.success - 0.05); }
 }
 const partyName = id => id==='me' ? 'You (PAX)' : AG(id) ? AG(id).name : id;

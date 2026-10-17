@@ -1,6 +1,6 @@
 import { addressesFromEnv, ARC_MAINNET, type OpcodeAddresses } from '../../../packages/chain/src/index.ts';
 
-/** Where x402 payments land before the 95/5 split. On Arc this is the PaymentSplitter contract. */
+/** Where x402 payments land before the 90/5/5 split (agent / buyback / protocol). On Arc this is the PaymentSplitter contract. */
 export const SIM_SPLITTER = '0x0000000000000000000000000000000000000402';
 
 export interface Config {

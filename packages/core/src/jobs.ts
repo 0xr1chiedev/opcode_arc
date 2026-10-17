@@ -22,7 +22,7 @@ export type JobAction =
 /** Funds that move as a result of a transition; the chain layer executes them. */
 export type Effect =
   | { kind: 'escrow_in'; from: string; amount: bigint }
-  | { kind: 'pay'; to: string; amount: bigint; label: 'provider' | 'evaluator' | 'protocol' | 'principal' }
+  | { kind: 'pay'; to: string; amount: bigint; label: 'provider' | 'evaluator' | 'buyback' | 'protocol' | 'principal' }
   | { kind: 'refund'; to: string; amount: bigint };
 
 const judge = (j: Job) => j.evaluator ?? j.client;
@@ -51,7 +51,7 @@ export function transition(j: Job, a: JobAction, now: number): { job: Job; effec
       assert(j.phase === 'submitted', 'PHASE', 'Only submitted work can be approved.', 409);
       assert(a.by === judge(j), 'FORBIDDEN', j.evaluator ? 'Only the evaluator decides this job.' : 'Only the client approves this job.', 403);
       const s = splitJobPayout(j.price, !!j.evaluator);
-      const effects: Effect[] = [{ kind: 'pay', to: j.provider, amount: s.provider, label: 'provider' }, { kind: 'pay', to: 'protocol', amount: s.protocol, label: 'protocol' }];
+      const effects: Effect[] = [{ kind: 'pay', to: j.provider, amount: s.provider, label: 'provider' }, { kind: 'pay', to: j.provider, amount: s.buyback, label: 'buyback' }, { kind: 'pay', to: 'protocol', amount: s.protocol, label: 'protocol' }];
       if (j.evaluator) effects.push({ kind: 'pay', to: j.evaluator, amount: s.evaluator, label: 'evaluator' });
       if (j.principal > 0n) effects.push({ kind: 'pay', to: j.provider, amount: j.principal, label: 'principal' });
       return { job: step('completed'), effects };

@@ -12,7 +12,7 @@ export type IntentKind =
   | 'usdc.transfer' | 'pax.deposit' | 'pax.withdraw'
   | 'job.fund' | 'job.release' | 'job.refund'
   | 'token.launch' | 'curve.buy' | 'curve.sell'
-  | 'presale.commit' | 'presale.settle' | 'points.publish' | 'x402.settle' | 'agent.withdraw';
+  | 'presale.commit' | 'presale.settle' | 'points.publish' | 'x402.settle' | 'agent.withdraw' | 'agent.buyback';
 export interface ChainIntent { kind: IntentKind; args: Record<string, unknown>; moves: Move[] }
 
 export type ExecResult =
@@ -39,5 +39,9 @@ export const ACCT = {
   team: (symbol: string) => `team:${symbol}`,
   vesting: (symbol: string, bucket: string) => `vesting:${symbol}:${bucket}`,
   pax: (owner: string) => `pax:${owner.toLowerCase()}`,
+  /** 5% of every payment to an agent waits here until it buys back the agent's token. */
+  buyback: (agentId: string) => `buyback:${agentId}`,
+  /** Bought-back tokens are sent here and never move again. */
+  burn: 'burn',
 } as const;
 export const tokenAsset = (symbol: string): Asset => `token:${symbol}`;

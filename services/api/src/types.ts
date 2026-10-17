@@ -12,6 +12,8 @@ export interface TokenRec {
   symbol: string; name: string; description: string; category: string; agentId: string | null; creator: string; createdAt: number;
   tokenomics: Tokenomics; curveTokens: bigint; curve: CurveState; pool: PoolState | null; sniper: SniperConfig | null;
   volume: bigint; fees: { creator: bigint; treasury: bigint }; holders: Record<string, true>; launchId: string | null; graduatedAt: number | null;
+  /** Agent buyback: USDC spent from the agent's buyback reserve and tokens burned with it. */
+  boughtBack?: { usdc: bigint; burned: bigint };
 }
 export interface TradeRec { id: string; symbol: string; trader: string; side: 'buy' | 'sell'; usdc: bigint; tokens: bigint; fee: bigint; buyback: bigint; priceWad: bigint; at: number; txHash: string }
 export interface LaunchRec { id: string; symbol: string; type: 'standard' | 'presale'; spec: LaunchSpec; creator: string; status: 'scheduled' | 'presale' | 'live' | 'cancelled'; createdAt: number; presaleId: string | null }

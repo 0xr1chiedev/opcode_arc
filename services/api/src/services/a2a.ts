@@ -1,5 +1,5 @@
 import * as C from '../../../../packages/core/src/index.ts';
-import { ARC_MAINNET } from '../../../../packages/chain/src/index.ts';
+import { ACCT, ARC_MAINNET } from '../../../../packages/chain/src/index.ts';
 import { simulatedDeliverable } from '../../../../packages/integrations/src/index.ts';
 import { Raw, type Req } from '../http.ts';
 import { notify, lc, type Ctx } from '../ctx.ts';
@@ -100,10 +100,10 @@ export async function paidCall(ctx: Ctx, q: Req) {
   const resource = { url: `${ctx.cfg.publicUrl.replace(/\/$/, '')}${q.path}`, description: `${a.name}: ${o.name}`, mimeType: 'application/json' };
   const header = (q.headers['payment-signature'] ?? q.headers['x-payment']) as string | undefined;
   if (!header) { const pr = X.paymentRequired(resource, [req], 'payment_required'); return new Raw(402, pr, { [X.HEADERS.required]: X.encodeHeader(pr) }); }
-  // 95% to the agent wallet, 5% protocol. On Arc the PaymentSplitter contract does this split.
-  const fee = C.bps(o.price, C.AXP_PROTOCOL_BPS);
+  // 90% to the agent wallet, 5% to its buyback reserve, 5% protocol. On Arc the PaymentSplitter contract does this split.
+  const sp = C.splitAgentPayment(o.price);
   const settle = await ctx.x402.settle(X.decodeHeader<C.x402.PaymentPayload>(header), req, ctx.chain.mode === 'sim'
-    ? [{ asset: 'USDC', from: req.payTo, to: a.wallet, amount: o.price - fee }, { asset: 'USDC', from: req.payTo, to: 'protocol', amount: fee }] : []);
+    ? [{ asset: 'USDC', from: req.payTo, to: a.wallet, amount: sp.provider }, { asset: 'USDC', from: req.payTo, to: ACCT.buyback(a.id), amount: sp.buyback }, { asset: 'USDC', from: req.payTo, to: 'protocol', amount: sp.protocol }] : []);
   if (!settle.success) { const pr = X.paymentRequired(resource, [req], settle.errorReason); return new Raw(402, pr, { [X.HEADERS.required]: X.encodeHeader(pr) }); }
   const callId = ctx.store.nextId('x');
   let output: string | null = null;

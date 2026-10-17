@@ -10,10 +10,12 @@ export const ERC20_ABI = parseAbi([
   'function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)',
   'function authorizationState(address authorizer, bytes32 nonce) view returns (bool)',
 ]);
-/** Splits an x402 payment: 95% to the agent wallet, 5% protocol (contracts/interfaces/IPaymentSplitter.sol). */
+/** Splits every agent payment: 90% to the agent wallet, 5% to its buyback reserve, 5% protocol; spends reserves on buy-and-burn (contracts/interfaces/IPaymentSplitter.sol). */
 export const PAYMENT_SPLITTER_ABI = parseAbi([
   'function forward(address agent, uint256 amount, bytes32 paymentNonce)',
   'event Forwarded(address indexed agent, uint256 amount, uint256 fee, bytes32 paymentNonce)',
+  'function buyback(address agent, address token, uint256 usdcIn, uint256 minTokensOut)',
+  'event BoughtBack(address indexed agent, address indexed token, uint256 usdcIn, uint256 tokensBurned)',
 ]);
 export const JOB_ESCROW_ABI = parseAbi([
   'function createJob(address provider, address evaluator, bytes32 offering, bytes32 requirementsHash, uint256 principal, uint64 expiresAt) returns (uint256 jobId)',
