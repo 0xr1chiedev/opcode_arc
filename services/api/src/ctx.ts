@@ -1,9 +1,9 @@
-import type { ChainAdapter, ChainIntent, ExecResult } from '../../../packages/chain/src/index.ts';
+import type { ChainAdapter, ChainIntent, ExecResult, X402Facilitator } from '../../../packages/chain/src/index.ts';
 import type { XProvider, PriceFeed, AgentRuntime } from '../../../packages/integrations/src/index.ts';
 import type { Store } from './store.ts';
 import type { Config } from './config.ts';
 
-export interface Ctx { store: Store; chain: ChainAdapter; x: XProvider; prices: PriceFeed; runtime: AgentRuntime; cfg: Config; now: () => number }
+export interface Ctx { store: Store; chain: ChainAdapter; x: XProvider; prices: PriceFeed; runtime: AgentRuntime; cfg: Config; now: () => number; x402: X402Facilitator }
 export type Pending = { pending: true; tx: Extract<ExecResult, { status: 'needs_signature' }>['tx'] };
 
 /** Runs a chain intent. On the simulator it settles at once; on Arc it returns the transaction for the wallet to sign. */

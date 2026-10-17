@@ -1,7 +1,7 @@
-import { createPublicClient, encodeFunctionData, http, keccak256, toHex, type Address, type Hex, type PublicClient } from 'viem';
+import { createPublicClient, encodeFunctionData, http, keccak256, parseSignature, toHex, type Address, type Hex, type PublicClient } from 'viem';
 import { DomainError } from '../../core/src/errors.ts';
 import { ARC_MAINNET, arcChain, type OpcodeAddresses } from './arc.ts';
-import { CURVE_FACTORY_ABI, ERC20_ABI, JOB_ESCROW_ABI, PAX_ACCOUNT_ABI, POINTS_LEDGER_ABI, PRESALE_VAULT_ABI } from './abi.ts';
+import { CURVE_FACTORY_ABI, ERC20_ABI, PAYMENT_SPLITTER_ABI, JOB_ESCROW_ABI, PAX_ACCOUNT_ABI, POINTS_LEDGER_ABI, PRESALE_VAULT_ABI } from './abi.ts';
 import type { Asset, ChainAdapter, ChainIntent, ExecResult } from './adapter.ts';
 
 const h32 = (s: unknown) => keccak256(toHex(String(s)));
@@ -52,6 +52,8 @@ export class ArcEvmChain implements ChainAdapter {
       case 'curve.sell': return { to: this.need('curveFactory'), data: encodeFunctionData({ abi: CURVE_FACTORY_ABI, functionName: 'sell', args: [this.tok(a.symbol), a.tokensIn, a.minOut ?? 0n] }) };
       case 'presale.commit': return { to: this.need('presaleVault'), data: encodeFunctionData({ abi: PRESALE_VAULT_ABI, functionName: 'commit', args: [BigInt(a.chainPresaleId ?? 0), a.points, a.usdc, a.proof ?? [], a.pointsBalance ?? 0n] }) };
       case 'presale.settle': return { to: this.need('presaleVault'), data: encodeFunctionData({ abi: PRESALE_VAULT_ABI, functionName: 'settle', args: [BigInt(a.chainPresaleId ?? 0)] }) };
+      case 'x402.settle': { const sig = parseSignature(a.signature); const z = a.authorization; return { to: ARC_MAINNET.usdc, data: encodeFunctionData({ abi: ERC20_ABI, functionName: 'transferWithAuthorization', args: [z.from, z.to, BigInt(z.value), BigInt(z.validAfter), BigInt(z.validBefore), z.nonce, Number(sig.v ?? (sig.yParity + 27)), sig.r, sig.s] }) }; }
+      case 'agent.withdraw': return { to: this.need('paymentSplitter'), data: encodeFunctionData({ abi: PAYMENT_SPLITTER_ABI, functionName: 'forward', args: [a.agent, a.amount, a.nonce ?? ('0x' + '0'.repeat(64))] }) };
       case 'points.publish': return { to: this.need('pointsLedger'), data: encodeFunctionData({ abi: POINTS_LEDGER_ABI, functionName: 'publishRoot', args: [a.root, BigInt(a.epoch)] }) };
     }
   }

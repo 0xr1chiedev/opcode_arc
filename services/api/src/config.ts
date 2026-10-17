@@ -1,10 +1,15 @@
 import { addressesFromEnv, ARC_MAINNET, type OpcodeAddresses } from '../../../packages/chain/src/index.ts';
 
+/** Where x402 payments land before the 95/5 split. On Arc this is the PaymentSplitter contract. */
+export const SIM_SPLITTER = '0x0000000000000000000000000000000000000402';
+
 export interface Config {
   port: number; chainMode: 'sim' | 'arc'; rpcUrl: string; addresses: OpcodeAddresses;
   allowDev: boolean; storeFile: string | null; seed: boolean; corsOrigin: string; sessionTtlMs: number; domain: string;
   x: { clientId?: string; clientSecret?: string; bearer?: string; redirectUri?: string; mode: 'mock' | 'api' };
   prices: 'dexscreener' | 'static'; workerMs: number;
+  x402: { tokenName: string; tokenVersion: string; relayerKey: string | null; payTo: string };
+  publicUrl: string;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
@@ -16,5 +21,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     domain: env.APP_DOMAIN ?? 'opcode.app',
     x: { clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET, bearer: env.X_BEARER_TOKEN, redirectUri: env.X_REDIRECT_URI, mode: env.X_MODE === 'api' ? 'api' : 'mock' },
     prices: env.PRICE_FEED === 'static' ? 'static' : 'dexscreener', workerMs: Number(env.WORKER_MS ?? 2000),
+    // EIP-712 domain of USDC on Arc for EIP-3009; verify against the deployed token (name(), version()).
+    x402: { tokenName: env.X402_TOKEN_NAME ?? 'USDC', tokenVersion: env.X402_TOKEN_VERSION ?? '2', relayerKey: env.X402_RELAYER_KEY ?? null,
+      payTo: env.OPCODE_PAYMENT_SPLITTER ?? SIM_SPLITTER },
+    publicUrl: env.PUBLIC_URL ?? `http://localhost:${env.PORT ?? 8787}`,
   };
 }

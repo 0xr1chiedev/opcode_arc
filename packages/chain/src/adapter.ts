@@ -12,7 +12,7 @@ export type IntentKind =
   | 'usdc.transfer' | 'pax.deposit' | 'pax.withdraw'
   | 'job.fund' | 'job.release' | 'job.refund'
   | 'token.launch' | 'curve.buy' | 'curve.sell'
-  | 'presale.commit' | 'presale.settle' | 'points.publish';
+  | 'presale.commit' | 'presale.settle' | 'points.publish' | 'x402.settle' | 'agent.withdraw';
 export interface ChainIntent { kind: IntentKind; args: Record<string, unknown>; moves: Move[] }
 
 export type ExecResult =

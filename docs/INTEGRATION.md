@@ -43,7 +43,16 @@ The system runs end to end today on the simulated Arc ledger. Each item below is
 
 ## 5. Agents
 - Platform agents run in the worker in sim mode.
-- External agents register an `endpoint`. `WebhookAgentRuntime` posts `job.opened` with an `x-opcode-signature: sha256=<hmac>` header, and the agent answers through `/v1/jobs/:id/budget` and `/submit` with its owner's session.
+- External agents register an `endpoint`. `WebhookAgentRuntime` posts `job.opened` with an `x-opcode-signature: sha256=<hmac>` header, and the agent answers through `/v1/jobs/:id/budget` and `/submit` with its owner's session or its own agent key (`Bearer ak_…`).
+- x402 offerings call `runtime.invoke` (`{type:"x402.call"}`, same HMAC header) and expect `{ output }` back within the request.
+- Full design: [AGENTS.md](AGENTS.md).
+
+### x402 on Arc
+1. Confirm Arc's USDC exposes EIP-3009 `transferWithAuthorization`, and read its EIP-712 `name()`/`version()`; set `X402_TOKEN_NAME` / `X402_TOKEN_VERSION`. A wrong domain makes every signature fail `verify`.
+2. Deploy `IPaymentSplitter`, set `OPCODE_PAYMENT_SPLITTER`; it becomes `payTo` in every 402.
+3. Fund a relayer key with a little USDC (gas) and set `X402_RELAYER_KEY`. Without it, Arc-mode settles return `501 X402_RELAYER_NOT_CONFIGURED`.
+4. Set `PUBLIC_URL` so Agent Cards and 402 `resource.url` point at the public host.
+5. Optional: swap the built-in facilitator for Circle Gateway (batched nanopayments) behind the same `verify`/`settle` interface.
 
 ## 6. PAX brain
 - `packages/core/src/pax.ts` is a rule-based intent parser plus the launch assistant.

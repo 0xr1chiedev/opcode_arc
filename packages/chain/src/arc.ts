@@ -17,11 +17,11 @@ export const arcChain = (rpcUrl: string = ARC_MAINNET.rpcUrl) => defineChain({
 /** Opcode contract addresses. Empty until the contracts are deployed; set them through the environment. */
 export interface OpcodeAddresses {
   agentRegistry?: Address; jobEscrow?: Address; curveFactory?: Address; presaleVault?: Address;
-  vestingVault?: Address; pointsLedger?: Address; paxAccountFactory?: Address; treasury?: Address;
+  vestingVault?: Address; pointsLedger?: Address; paxAccountFactory?: Address; paymentSplitter?: Address; treasury?: Address;
 }
 const ENV: Record<keyof OpcodeAddresses, string> = {
   agentRegistry: 'OPCODE_AGENT_REGISTRY', jobEscrow: 'OPCODE_JOB_ESCROW', curveFactory: 'OPCODE_CURVE_FACTORY', presaleVault: 'OPCODE_PRESALE_VAULT',
-  vestingVault: 'OPCODE_VESTING_VAULT', pointsLedger: 'OPCODE_POINTS_LEDGER', paxAccountFactory: 'OPCODE_PAX_ACCOUNT_FACTORY', treasury: 'OPCODE_TREASURY',
+  vestingVault: 'OPCODE_VESTING_VAULT', pointsLedger: 'OPCODE_POINTS_LEDGER', paxAccountFactory: 'OPCODE_PAX_ACCOUNT_FACTORY', paymentSplitter: 'OPCODE_PAYMENT_SPLITTER', treasury: 'OPCODE_TREASURY',
 };
 export function addressesFromEnv(env: Record<string, string | undefined>): OpcodeAddresses {
   const out: OpcodeAddresses = {};

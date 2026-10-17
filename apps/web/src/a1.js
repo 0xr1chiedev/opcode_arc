@@ -74,7 +74,8 @@ function walletSVG(key){
 }
 /* Project/agent/token avatars: tinted tile with a two-letter mark, like an element symbol. */
 const glyph = k => { const s = String(k).replace(/[^A-Za-z0-9]/g,''); return s ? s[0].toUpperCase() + (s[1]||'').toLowerCase() : '?'; };
-const av = (key, color, cls='') => (/round/.test(cls) || /^0x/i.test(key))
+const agentById = key => typeof key === 'string' && /^[a-z0-9]+$/.test(key) && typeof AGENTS !== 'undefined' ? AGENTS.find(x => x.id === key) : null;
+const av = (key, color, cls='') => agentById(key) && !/round/.test(cls) ? `<span class="av pt ${cls}">${agentPortrait(agentById(key))}</span>` : (/round/.test(cls) || /^0x/i.test(key))
   ? `<span class="av ${cls}">${walletSVG(key)}</span>`
   : `<span class="av mg ${cls}" style="--c:${color || colorFor(key)}"><i>${esc(glyph(key))}</i></span>`;
 function CAT(mood='smug', size=30, extra=''){
@@ -118,7 +119,7 @@ const outSell = (r, amt) => { const x = X0 + r, y = K/x; return x - K/(y+amt); }
 const SNIPE = {0:'Off', 60:'60 sec', 600:'10 min', 5880:'98 min'};
 const ACP_FEE = {noEval:{prov:.95, proto:.05}, eval:{prov:.90, ev:.05, proto:.05}};
 const PHASES = ['open','budget_set','funded','submitted','completed'];
-const PH_LABEL = {open:'Job created', budget_set:'Budget set', funded:'Job funded', submitted:'Work submitted', completed:'Job completed', rejected:'Job rejected', expired:'Job expired'};
+const PH_LABEL = {x402:'Paid · x402', open:'Job created', budget_set:'Budget set', funded:'Job funded', submitted:'Work submitted', completed:'Job completed', rejected:'Job rejected', expired:'Job expired'};
 const PERP_FEE = 0.00045 + 0.001;
 
 /* ================= state ================= */
@@ -130,7 +131,8 @@ const S = {
 const T0 = Date.now();
 
 /* ================= agents (ACP) ================= */
-const OFF = (key, name, desc, price, sla, reqs, extra={}) => ({key, name, desc, price, sla, reqs, ...extra});
+/* x402: instant, fixed-price offerings can be paid per call (EIP-3009 USDC on Arc); everything else runs as an escrowed AXP job. */
+const OFF = (key, name, desc, price, sla, reqs, extra={}) => ({key, name, desc, price, sla, reqs, x402: extra.x402 ?? (price > 0 && price <= 0.4 && sla <= 2 && !extra.fund && key !== 'evaluate'), ...extra});
 const AGENTS = [
   {id:'lumen', name:'Lumen', handle:'lumen', sym:'LUMEN', color:'#3A63C9', pro:true, role:'provider', owner:'demo', desc:'Reads contracts in Turkish and English and returns a plain summary with flagged clauses.',
     offerings:[OFF('contract_summary','Contract summary + red flags','Upload or paste a contract. Returns a one-page summary, a list of risky clauses with reasons, and questions to ask before signing.',0.5,5,[['contract','Contract text or link'],['side','You are (tenant, freelancer, buyer…)']]), OFF('nda_check','NDA quick check','Checks an NDA for scope, term, non-solicit and jurisdiction traps. Verdict: SIGN / NEGOTIATE / AVOID.',0.25,3,[['nda','NDA text or link']])],
@@ -269,6 +271,9 @@ function newJob(client, provider, offering, opts={}){
   const a = AG(provider), o = a.offerings.find(x=>x.key===offering) || a.offerings[0];
   const j = {id:++JOBN, client, provider, offering:o.key, oname:o.name, price:opts.price!=null?opts.price:o.price, evaluator:opts.evaluator||null, reqs:opts.reqs||{}, phase:'open', hist:[{p:'open', t:Date.now()}], created:Date.now(), expires:Date.now()+Math.max(5,o.sla*3)*60e3, sla:o.sla, mine:!!opts.mine, deliverable:null, memo:[]};
   JOBS.unshift(j); if(JOBS.length > 400) JOBS.pop();
+  // x402 calls settle and deliver in one request: one "Paid · x402" event, no escrow phases.
+  j.rail = o.x402 && !opts.mine && !opts.escrow ? 'x402' : 'escrow';
+  if(j.rail === 'x402'){ try { j.deliverable = deliver(o, {}); } catch { j.deliverable = null; } advance(j, 'completed'); j.hist = [{p:'x402', t:Date.now()}]; }
   return j;
 }
 function advance(j, phase){

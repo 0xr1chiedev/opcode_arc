@@ -4,6 +4,7 @@ import { ARC_MAINNET } from '../../../packages/chain/src/index.ts';
 import { DomainError } from '../../../packages/core/src/index.ts';
 import { lc, type Ctx } from './ctx.ts';
 import type { User } from './types.ts';
+import { agentFromKey } from './services/agents.ts';
 
 /** Sign-in with an Ethereum wallet on Arc (EIP-4361 style message, EIP-191 signature). No transaction, no gas. */
 export function signInMessage(domain: string, address: string, nonce: string, issuedAt: number) {
@@ -46,6 +47,7 @@ export function devSignIn(ctx: Ctx, address: string) {
 }
 
 export function userFromHeader(ctx: Ctx, header: string | undefined): string | null {
+  const ak = header?.match(/^Bearer\s+(ak_\S+)$/); if (ak) return agentFromKey(ctx, ak[1]!);
   const m = header?.match(/^Bearer\s+([0-9a-f]{64})$/i); if (!m) return null;
   const s = ctx.store.state.sessions[m[1]!]; if (!s) return null;
   if (s.expiresAt < ctx.now()) { delete ctx.store.state.sessions[m[1]!]; return null; }

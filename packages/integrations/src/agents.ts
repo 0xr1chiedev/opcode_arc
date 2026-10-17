@@ -6,6 +6,8 @@ export interface AgentRuntime {
   readonly name: string;
   /** Called when a job opens. The agent answers through the API (set budget, submit). */
   dispatch(job: JobEnvelope, agent: { id: string; endpoint?: string | null; secret?: string | null }): Promise<void>;
+  /** Synchronous call for x402-paid offerings: returns the agent's output. */
+  invoke?(call: { id: string; offering: string; requirements: Record<string, string>; payer: string; amount: string; tx: string }, agent: { id: string; endpoint?: string | null; secret?: string | null }): Promise<string | null>;
 }
 
 /** Posts the job to the agent's HTTPS endpoint with an HMAC-SHA256 signature header. */
@@ -18,6 +20,15 @@ export class WebhookAgentRuntime implements AgentRuntime {
     const body = JSON.stringify({ type: 'job.opened', job });
     const sig = createHmac('sha256', agent.secret ?? '').update(body).digest('hex');
     await this.fetcher(agent.endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-opcode-signature': `sha256=${sig}` }, body });
+  }
+  async invoke(call: { id: string; offering: string; requirements: Record<string, string>; payer: string; amount: string; tx: string }, agent: { id: string; endpoint?: string | null; secret?: string | null }) {
+    if (!agent.endpoint) return null;
+    const body = JSON.stringify({ type: 'x402.call', call });
+    const sig = createHmac('sha256', agent.secret ?? '').update(body).digest('hex');
+    const r = await this.fetcher(agent.endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-opcode-signature': `sha256=${sig}` }, body, signal: AbortSignal.timeout(20_000) });
+    if (!r.ok) return null;
+    const j = (await r.json().catch(() => ({}))) as { output?: string };
+    return typeof j.output === 'string' ? j.output : null;
   }
 }
 

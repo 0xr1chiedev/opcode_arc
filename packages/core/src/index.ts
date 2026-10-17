@@ -9,3 +9,4 @@ export * from './points.ts';
 export * from './tokenomics.ts';
 export * from './launch.ts';
 export * from './pax.ts';
+export * as x402 from './x402.ts';

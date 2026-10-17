@@ -6,6 +6,8 @@ import { privateKeyToAccount } from 'viem/accounts';
 import * as C from '../../../packages/core/src/index.ts';
 import { SimChain, ACCT, tokenAsset, ArcEvmChain } from '../../../packages/chain/src/index.ts';
 import { MockXProvider, StaticPriceFeed } from '../../../packages/integrations/src/index.ts';
+import { signPayment } from '../../../packages/chain/src/index.ts';
+import { keccak256, toHex } from 'viem';
 import { createApp } from '../src/app.ts';
 import { MemoryStore, serialize, deserialize } from '../src/store.ts';
 
@@ -20,6 +22,10 @@ after(() => app.server.close());
 async function api(method: string, path: string, body?: unknown, token?: string) {
   const r = await fetch(base + path, { method, headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
   return { status: r.status, body: (await r.json()) as any };
+}
+async function rawApi(method: string, path: string, body?: unknown, headers: Record<string, string> = {}) {
+  const r = await fetch(base + path, { method, headers: { 'content-type': 'application/json', ...headers }, body: body === undefined ? undefined : JSON.stringify(body) });
+  return { status: r.status, headers: r.headers, body: (await r.json()) as any };
 }
 const alice = privateKeyToAccount('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d');
 const bob = privateKeyToAccount('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a');
@@ -88,7 +94,7 @@ test('AXP job through PAX: open → budget → fund from PAX → delivered → a
   advance(6_000); await app.tick();
   const sub = await api('GET', `/v1/jobs/${j.body.id}`); assert.equal(sub.body.phase, 'submitted'); assert.match(sub.body.deliverable, /lease\.pdf/);
   const done = await api('POST', `/v1/jobs/${j.body.id}/complete`, {}, A); assert.equal(done.body.phase, 'completed');
-  assert.equal(usdcOf('agent:lumen'), 475_000n); assert.equal(usdcOf(ACCT.protocol), 25_000n); assert.equal(usdcOf(ACCT.escrow(j.body.id)), 0n);
+  assert.equal(usdcOf(app.ctx.store.state.agents.lumen!.wallet), 475_000n); assert.equal(usdcOf(ACCT.protocol), 25_000n); assert.equal(usdcOf(ACCT.escrow(j.body.id)), 0n);
 });
 
 test('standard launch: validation, modules charged, pre-buy filled before anti-sniper; others pay the sniper tax', async () => {
@@ -180,6 +186,67 @@ test('agents: users create agents, act as provider on their jobs, and only they 
   const w = usdcOf(alice.address);
   assert.equal((await api('POST', `/v1/jobs/${j.body.id}/reject`, {}, B)).body.phase, 'rejected');
   assert.equal(usdcOf(alice.address), w); assert.equal(usdcOf(ACCT.escrow(j.body.id)), 0n);
+});
+
+test('A2A: agent cards for discovery; an agent hires another agent over JSON-RPC and pays from its own wallet', async () => {
+  const card = await api('GET', '/v1/agents/scout/agent-card.json');
+  assert.equal(card.body.supportedInterfaces[0].protocolBinding, 'JSONRPC'); assert.match(card.body.supportedInterfaces[0].url, /\/v1\/a2a\/scout$/);
+  assert.deepEqual(card.body.skills.map((x: any) => x.id), ['research_report', 'alpha_ping']);
+  const ap = card.body['opcode.axp'].offerings.find((o: any) => o.key === 'alpha_ping'); assert.deepEqual(ap.rails, ['x402', 'escrow']); assert.match(ap.x402Endpoint, /\/v1\/x402\/agents\/scout\/alpha_ping$/);
+  assert.equal((await api('GET', '/.well-known/agent-card.json')).body.name, 'PAX by Opcode');
+  // Alice's agent gets a key and its own wallet
+  const ag = await api('POST', '/v1/agents', { name: 'Desk Bot', description: 'Research desk', offerings: [{ key: 'brief', description: 'Daily brief', price: '1', slaMinutes: 10, requirements: [['topic', 'Topic']] }] }, A);
+  const key = await api('POST', `/v1/agents/${ag.body.id}/keys`, { label: 'runner' }, A);
+  assert.match(key.body.key, /^ak_deskbot_/); assert.equal((await api('POST', `/v1/agents/${ag.body.id}/keys`, {}, B)).status, 403);
+  const K = key.body.key, wallet = key.body.wallet;
+  await api('POST', '/v1/dev/faucet', { amount: '20' }, K);
+  assert.equal(usdcOf(wallet), C.usdc('20'));
+  const rpc = (method: string, params: unknown, token = K) => api('POST', '/v1/a2a/scout', { jsonrpc: '2.0', id: 7, method, params }, token);
+  assert.equal((await api('POST', '/v1/a2a/scout', { jsonrpc: '2.0', id: 1, method: 'SendMessage', params: {} })).body.error.code, -32000);
+  assert.equal((await rpc('Nope', {})).body.error.code, -32601);
+  const sent = await rpc('SendMessage', { message: { role: 'user', messageId: 'm1', parts: [{ kind: 'data', data: { offering: 'research_report', requirements: { topic: 'Arc stablecoin volume', depth: 'brief' } } }] } });
+  assert.equal(sent.body.result.status.state, 'submitted'); const tid = sent.body.result.id;
+  await app.tick();
+  assert.equal((await rpc('GetTask', { id: tid })).body.result.status.state, 'input-required');
+  assert.equal((await api('POST', `/v1/jobs/${tid}/fund`, {}, K)).body.phase, 'funded');
+  assert.equal(usdcOf(wallet), C.usdc('17'), 'the agent paid Scout from its own wallet');
+  advance(6_000); await app.tick();
+  await api('POST', `/v1/jobs/${tid}/complete`, {}, K);
+  const done = (await rpc('tasks/get', { id: tid })).body.result;
+  assert.equal(done.status.state, 'completed'); assert.match(done.artifacts[0].parts[0].text, /Arc stablecoin volume/);
+  assert.equal((await rpc('GetTask', { id: tid }, B)).body.error.code, -32001, 'other users cannot read the task');
+  // the owner withdraws agent earnings
+  assert.equal((await api('POST', `/v1/agents/${ag.body.id}/withdraw`, { amount: '5' }, A)).status, 200);
+  assert.equal(usdcOf(wallet), C.usdc('12'));
+  assert.equal((await api('POST', `/v1/agents/${ag.body.id}/withdraw`, { amount: '1' }, B)).status, 403);
+});
+
+test('x402: 402 with requirements, signed EIP-3009 retry gets the result, 95/5 split, replay refused', async () => {
+  const path = '/v1/x402/agents/scout/alpha_ping', body = { requirements: { keyword: 'arc' } };
+  assert.equal((await rawApi('POST', path, { requirements: {} })).status, 422, 'inputs are checked before asking for payment');
+  assert.equal((await rawApi('POST', '/v1/x402/agents/scout/research_report', body)).body.error.code, 'NOT_X402');
+  const r402 = await rawApi('POST', path, body);
+  assert.equal(r402.status, 402); assert.equal(r402.body.x402Version, 2);
+  const req = r402.body.accepts[0]; assert.equal(req.network, 'eip155:5042'); assert.equal(req.amount, '50000'); assert.equal(req.scheme, 'exact');
+  assert.deepEqual(C.x402.decodeHeader(r402.headers.get('payment-required')), r402.body);
+  const before = usdcOf(alice.address), agentBefore = usdcOf(app.ctx.store.state.agents.scout!.wallet), protoBefore = usdcOf('protocol');
+  const { header } = await signPayment(alice, req, clock, keccak256(toHex('x402-call-1')));
+  const ok = await rawApi('POST', path, body, { 'PAYMENT-SIGNATURE': header });
+  assert.equal(ok.status, 200, JSON.stringify(ok.body)); assert.equal(ok.body.status, 'completed'); assert.match(ok.body.output, /arc/);
+  const receipt = C.x402.decodeHeader<any>(ok.headers.get('payment-response')); assert.equal(receipt.success, true); assert.equal(receipt.network, 'eip155:5042');
+  assert.equal(before - usdcOf(alice.address), 50_000n);
+  assert.equal(usdcOf(app.ctx.store.state.agents.scout!.wallet) - agentBefore, 47_500n); assert.equal(usdcOf('protocol') - protoBefore, 2_500n);
+  const replay = await rawApi('POST', path, body, { 'PAYMENT-SIGNATURE': header });
+  assert.equal(replay.status, 402); assert.equal(replay.body.error, 'nonce_already_used');
+  const v1 = await rawApi('POST', path, body, { 'X-PAYMENT': (await signPayment(alice, req, clock, keccak256(toHex('x402-call-2')))).header });
+  assert.equal(v1.status, 200, 'v1 X-PAYMENT header accepted'); assert.ok(v1.headers.get('x-payment-response'));
+  assert.equal((await api('GET', '/v1/x402/calls?agent=scout')).body.items.length, 2);
+  // facilitator endpoints for any x402 server on Arc
+  assert.equal((await api('GET', '/v1/x402/supported')).body.kinds[0].network, 'eip155:5042');
+  const other = { ...req, payTo: bob.address };
+  const signed = await signPayment(alice, other, clock, keccak256(toHex('x402-fac-1')));
+  assert.deepEqual((await api('POST', '/v1/x402/verify', { paymentPayload: signed.payload, paymentRequirements: other })).body, { isValid: true, payer: alice.address });
+  const st = await api('POST', '/v1/x402/settle', { paymentPayload: signed.payload, paymentRequirements: other }); assert.equal(st.body.success, true);
 });
 
 test('store snapshot round-trips bigints', () => {

@@ -13,6 +13,7 @@ API already builds calldata for them (`ArcEvmChain.encode`).
 | `IVestingVault` | Team, airdrop, ecosystem, treasury vesting | `OPCODE_VESTING_VAULT` |
 | `IPointsLedger` | Merkle root of points, locks and burns | `OPCODE_POINTS_LEDGER` |
 | `IPaxAccountFactory` | PAX smart accounts (USDC only) | `OPCODE_PAX_ACCOUNT_FACTORY` |
+| `IPaymentSplitter` | `payTo` for x402 calls; forwards 95% to the agent wallet, 5% to protocol | `OPCODE_PAYMENT_SPLITTER` |
 
 The rules each contract must enforce are implemented and tested in `packages/core` (same numbers, bigint math).
 Port those tests to Foundry when the implementations land, so the off-chain and on-chain math cannot drift.

@@ -37,6 +37,9 @@ contracts/interfaces     Solidity interfaces the ABIs mirror (implementations co
    - expire jobs,
    - in sim mode, drive the platform agents.
 
+## Agent connectivity
+Agents have an ERC-8004 identity, their own USDC wallet and API keys. They are discovered through A2A Agent Cards, talk JSON-RPC (`/v1/a2a/:id`), and are paid on two rails: escrowed AXP jobs, or x402 per call through the built-in facilitator and the `PaymentSplitter`. See [AGENTS.md](AGENTS.md).
+
 ## Ledger accounts
 
 | Account | Meaning |

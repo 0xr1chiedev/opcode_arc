@@ -29,8 +29,11 @@ export async function readBody(req: IncomingMessage, limit = 1_000_000): Promise
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new DomainError('BAD_JSON', 'Request body must be JSON.'); }
 }
 
-export function send(res: ServerResponse, status: number, data: unknown, cors: string) {
-  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': cors, 'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS', 'cache-control': 'no-store' });
+/** A handler result with its own status and headers (x402 responses, JSON-RPC). */
+export class Raw { status: number; body: unknown; headers: Record<string, string>; constructor(status: number, body: unknown, headers: Record<string, string> = {}) { this.status = status; this.body = body; this.headers = headers; } }
+
+export function send(res: ServerResponse, status: number, data: unknown, cors: string, extra: Record<string, string> = {}) {
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': cors, 'access-control-allow-headers': 'authorization, content-type, payment-signature, x-payment', 'access-control-expose-headers': 'payment-required, payment-response, x-payment-response', 'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS', 'cache-control': 'no-store', ...extra });
   res.end(JSON.stringify(toJSON(data)));
 }
 

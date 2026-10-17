@@ -7,7 +7,9 @@ const { DomainError, assert } = C;
 export const getAgent = (ctx: Ctx, id: string): Agent => { const a = ctx.store.state.agents[id]; if (!a) throw new DomainError('NOT_FOUND', 'Agent not found.', 404); return a; };
 export const getJob = (ctx: Ctx, id: string): JobRec => { const j = ctx.store.state.jobs[id]; if (!j) throw new DomainError('NOT_FOUND', 'Job not found.', 404); return j; };
 /** Where an agent gets paid: its owner's wallet, or a protocol account for platform agents. */
-export const agentWallet = (a: Agent) => (a.owner.startsWith('0x') ? a.owner : `agent:${a.id}`);
+export const agentWallet = (a: Agent) => a.wallet;
+
+export const isAgentWallet = (ctx: Ctx, addr: string) => Object.values(ctx.store.state.agents).some((a) => a.wallet === lc(addr));
 
 export async function openJob(ctx: Ctx, user: string, p: { agentId: string; offering: string; requirements: Record<string, string>; evaluator?: string | null; principal?: bigint; payFrom?: 'pax' | 'wallet' }) {
   const a = getAgent(ctx, p.agentId), o = a.offerings.find((x) => x.key === p.offering);
@@ -17,7 +19,7 @@ export async function openJob(ctx: Ctx, user: string, p: { agentId: string; offe
   assert(!o.fundTransfer || (p.principal ?? 0n) > 0n, 'PRINCIPAL', 'This offering moves funds; set the principal amount.', 422);
   const id = ctx.store.nextId('');
   const job: JobRec = { ...C.newJob({ id, client: lc(user), provider: a.id, evaluator: p.evaluator ?? null, offering: o.key, requirements: p.requirements, principal: o.fundTransfer ? p.principal ?? 0n : 0n, slaMinutes: o.slaMinutes, now: ctx.now() }),
-    payer: p.payFrom === 'wallet' ? lc(user) : ACCT.pax(user), txs: [] };
+    payer: p.payFrom === 'wallet' || isAgentWallet(ctx, user) ? lc(user) : ACCT.pax(user), txs: [] };
   ctx.store.state.jobs[id] = job; a.stats.jobs++;
   await ctx.runtime.dispatch({ id, provider: a.id, offering: o.key, requirements: p.requirements, price: String(o.price), client: lc(user), createdAt: job.createdAt }, a);
   return job;
@@ -48,7 +50,7 @@ export async function act(ctx: Ctx, actor: string, jobId: string, action: C.JobA
 /** Provider-side permission: the agent's owner (or the protocol for platform agents) acts as the provider. */
 export function providerActor(ctx: Ctx, user: string, jobId: string): string {
   const j = getJob(ctx, jobId), a = getAgent(ctx, j.provider);
-  if (a.owner !== lc(user)) throw new DomainError('FORBIDDEN', 'Only the agent owner can act as the provider.', 403);
+  if (a.owner !== lc(user) && a.wallet !== lc(user)) throw new DomainError('FORBIDDEN', 'Only the agent (or its owner) can act as the provider.', 403);
   return a.id;
 }
 

@@ -1,17 +1,18 @@
 import { createServer, type Server } from 'node:http';
 import * as C from '../../../packages/core/src/index.ts';
-import { ACCT, ARC_MAINNET, ArcEvmChain, SimChain, tokenAsset, type ChainAdapter } from '../../../packages/chain/src/index.ts';
+import { ACCT, ARC_MAINNET, ArcEvmChain, SimChain, X402Facilitator, viemRelayer, tokenAsset, type ChainAdapter } from '../../../packages/chain/src/index.ts';
 import { CachedPriceFeed, DexScreenerFeed, MockXProvider, QueueAgentRuntime, StaticPriceFeed, XApiProvider, type AgentRuntime, type PriceFeed, type XProvider } from '../../../packages/integrations/src/index.ts';
 import { loadConfig, type Config } from './config.ts';
 import { MemoryStore, type Store } from './store.ts';
-import { Router, readBody, send, amount, str, type Req } from './http.ts';
+import { Router, Raw, readBody, send, amount, str, type Req } from './http.ts';
 import { run, isPending, lc, type Ctx } from './ctx.ts';
 import { devSignIn, ensureUser, issueNonce, signOut, userFromHeader, verifySignIn } from './auth.ts';
 import { getToken, listTokens, quote, tokenView, trade } from './services/market.ts';
 import { createLaunch, commit, getPresale, presaleView, settle, upcoming } from './services/launch.ts';
 import { act, getAgent, getJob, openJob, providerActor, searchOfferings } from './services/jobs.ts';
 import { leaderboard, linkX, pointsView, submitPost } from './services/points.ts';
-import { agentView, createAgent } from './services/agents.ts';
+import { agentView, createAgent, createKey, revokeKey, withdraw } from './services/agents.ts';
+import { agentCard, a2aRpc, paidCall, platformCard } from './services/a2a.ts';
 import { confirmLaunch, getChat, message } from './services/pax.ts';
 import { seed } from './seed.ts';
 import { tick } from './workers.ts';
@@ -27,13 +28,16 @@ export function createApp(deps: AppDeps = {}) {
   const chain = deps.chain ?? (cfg.chainMode === 'arc' ? new ArcEvmChain({ rpcUrl: cfg.rpcUrl, addresses: cfg.addresses }) : new SimChain({ now }));
   const x = deps.x ?? (cfg.x.mode === 'api' ? new XApiProvider(cfg.x) : new MockXProvider({ now }));
   const prices = deps.prices ?? new CachedPriceFeed(cfg.prices === 'static' ? [new StaticPriceFeed()] : [new DexScreenerFeed(), new StaticPriceFeed()]);
-  const ctx: Ctx = { store: deps.store ?? new MemoryStore({ file: cfg.storeFile }), chain, x, prices, runtime: deps.runtime ?? new QueueAgentRuntime(), cfg, now };
+  const store = deps.store ?? new MemoryStore({ file: cfg.storeFile });
+  const x402 = new X402Facilitator({ chain, now, relayer: cfg.x402.relayerKey ? viemRelayer(cfg.x402.relayerKey as `0x${string}`, cfg.rpcUrl) : null,
+    nonces: { used: (p, n) => !!store.state.x402Nonces[p.toLowerCase() + ':' + n], mark: (p, n, at) => { store.state.x402Nonces[p.toLowerCase() + ':' + n] = at; } } });
+  const ctx: Ctx = { store, chain, x, prices, runtime: deps.runtime ?? new QueueAgentRuntime(), cfg, now, x402 };
   const r = new Router(), me = (q: Req) => q.user!;
   const sim = () => { if (!(chain instanceof SimChain)) throw new DomainError('SIM_ONLY', 'Only available on the simulated chain.', 403); return chain; };
   const bal = async (asset: Parameters<ChainAdapter['balanceOf']>[0], acct: string) => chain.balanceOf(asset, acct).catch(() => null);
 
   /* ---- system ---- */
-  r.get('/v1/health', async () => ({ ok: true, mode: chain.mode, chainId: ARC_MAINNET.id, block: await chain.blockNumber().catch(() => null), contracts: Object.fromEntries(['agentRegistry', 'jobEscrow', 'curveFactory', 'presaleVault', 'vestingVault', 'pointsLedger', 'paxAccountFactory', 'treasury'].map((k) => [k, !!(cfg.addresses as Record<string, string>)[k]])), x: x.name, prices: prices.name }));
+  r.get('/v1/health', async () => ({ ok: true, mode: chain.mode, chainId: ARC_MAINNET.id, block: await chain.blockNumber().catch(() => null), contracts: Object.fromEntries(['agentRegistry', 'jobEscrow', 'curveFactory', 'presaleVault', 'vestingVault', 'pointsLedger', 'paxAccountFactory', 'paymentSplitter', 'treasury'].map((k) => [k, !!(cfg.addresses as Record<string, string>)[k]])), x: x.name, prices: prices.name, x402: { network: 'eip155:5042', relayer: !!cfg.x402.relayerKey } }));
   r.get('/v1/config', () => ({ chain: ARC_MAINNET, fees: { tradeBps: C.TRADE_FEE_BPS, creatorShareBps: C.CREATOR_SHARE_BPS, axpProtocolBps: C.AXP_PROTOCOL_BPS, axpEvaluatorBps: C.AXP_EVALUATOR_BPS, modules: C.MODULE_FEES },
     curve: { supply: C.SUPPLY, x0: C.X0, y0: C.Y0, graduation: C.GRAD, lpLockYears: C.LP_LOCK_YEARS }, presale: { defaultCapBps: C.DEFAULT_CAP_BPS, shareMinBps: C.SHARE_MIN_BPS, shareMaxBps: C.SHARE_MAX_BPS, durationsH: C.DURATIONS_H }, points: C.POINTS_RULES, tokenomics: { rules: C.RULES, presets: C.PRESETS } }));
   r.get('/v1/prices', async (q) => ({ items: await prices.prices((q.query.get('symbols') ?? 'BTC,ETH,SOL,HYPE').split(',').map((s) => s.trim().toUpperCase()).slice(0, 10)) }));
@@ -60,10 +64,10 @@ export function createApp(deps: AppDeps = {}) {
   r.get('/v1/agents', () => ({ items: Object.values(ctx.store.state.agents).map(agentView) }));
   r.get('/v1/agents/:id', (q) => agentView(getAgent(ctx, q.params.id!)));
   r.post('/v1/agents', (q) => agentView(createAgent(ctx, me(q), { name: str(q.body.name, 'name', 32), description: str(q.body.description, 'description'), category: q.body.category, endpoint: q.body.endpoint ?? null,
-    offerings: (q.body.offerings ?? []).map((o: any) => ({ key: str(o.key, 'key', 40), name: o.name, description: str(o.description, 'description'), price: U6(o.price ?? '0', 'price'), pctFeeBps: Number(o.pctFeeBps ?? 0), slaMinutes: Number(o.slaMinutes ?? 10), requirements: o.requirements ?? [], fundTransfer: !!o.fundTransfer })) })), { auth: true });
+    wallet: q.body.wallet ?? null, offerings: (q.body.offerings ?? []).map((o: any) => ({ key: str(o.key, 'key', 40), name: o.name, description: str(o.description, 'description'), price: U6(o.price ?? '0', 'price'), pctFeeBps: Number(o.pctFeeBps ?? 0), slaMinutes: Number(o.slaMinutes ?? 10), requirements: o.requirements ?? [], fundTransfer: !!o.fundTransfer, x402: !!o.x402 })) })), { auth: true });
   r.get('/v1/offerings', (q) => ({ items: searchOfferings(ctx, q.query.get('q') ?? '', 20).map((x) => ({ agentId: x.agent.id, agent: x.agent.name, ...x.offering })) }));
   r.post('/v1/jobs', (q) => openJob(ctx, me(q), { agentId: str(q.body.agentId, 'agentId'), offering: str(q.body.offering, 'offering'), requirements: q.body.requirements ?? {}, evaluator: q.body.evaluator ?? null, principal: q.body.principal ? U6(q.body.principal, 'principal') : 0n, payFrom: q.body.payFrom === 'wallet' ? 'wallet' : 'pax' }), { auth: true });
-  r.get('/v1/jobs', (q) => ({ items: Object.values(ctx.store.state.jobs).filter((j) => j.client === me(q) || getAgent(ctx, j.provider).owner === me(q)).sort((a, b) => b.createdAt - a.createdAt).slice(0, 100) }), { auth: true });
+  r.get('/v1/jobs', (q) => ({ items: Object.values(ctx.store.state.jobs).filter((j) => j.client === me(q) || getAgent(ctx, j.provider).owner === me(q) || getAgent(ctx, j.provider).wallet === me(q)).sort((a, b) => b.createdAt - a.createdAt).slice(0, 100) }), { auth: true });
   r.get('/v1/jobs/:id', (q) => getJob(ctx, q.params.id!));
   r.post('/v1/jobs/:id/fund', (q) => act(ctx, me(q), q.params.id!, { type: 'fund', by: me(q) }), { auth: true });
   r.post('/v1/jobs/:id/complete', (q) => act(ctx, me(q), q.params.id!, { type: 'complete', by: me(q) }), { auth: true });
@@ -93,6 +97,20 @@ export function createApp(deps: AppDeps = {}) {
   r.post('/v1/points/x/link', (q) => linkX(ctx, me(q), str(q.body.code, 'code', 2000), q.body.verifier ?? ''), { auth: true });
   r.post('/v1/points/submissions', (q) => submitPost(ctx, me(q), str(q.body.url, 'url', 300)), { auth: true });
 
+  /* ---- agent connectivity: keys, wallets, A2A, x402 ---- */
+  r.post('/v1/agents/:id/keys', (q) => createKey(ctx, me(q), q.params.id!, q.body.label), { auth: true });
+  r.get('/v1/agents/:id/keys', (q) => { const a = getAgent(ctx, q.params.id!); if (a.owner !== me(q)) throw new DomainError('FORBIDDEN', 'Owner only.', 403); return { items: a.keys.map(({ hash, ...k }) => k) }; }, { auth: true });
+  r.del('/v1/agents/:id/keys/:key', (q) => revokeKey(ctx, me(q), q.params.id!, q.params.key!), { auth: true });
+  r.post('/v1/agents/:id/withdraw', (q) => withdraw(ctx, me(q), q.params.id!, U6(q.body.amount, 'amount')), { auth: true });
+  r.get('/v1/agents/:id/agent-card.json', (q) => agentCard(ctx, getAgent(ctx, q.params.id!)));
+  r.get('/.well-known/agent-card.json', () => platformCard(ctx));
+  r.post('/v1/a2a/:id', (q) => a2aRpc(ctx, q));
+  r.get('/v1/x402/supported', () => x402.supported());
+  r.post('/v1/x402/verify', (q) => x402.verify(q.body.paymentPayload ?? null, q.body.paymentRequirements));
+  r.post('/v1/x402/settle', (q) => x402.settle(q.body.paymentPayload ?? null, q.body.paymentRequirements));
+  r.post('/v1/x402/agents/:id/:offering', (q) => paidCall(ctx, q));
+  r.get('/v1/x402/calls', (q) => ({ items: ctx.store.state.calls.filter((c) => !q.query.get('agent') || c.agentId === q.query.get('agent')).slice(0, 100) }));
+
   async function handle(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) {
     if (req.method === 'OPTIONS') return send(res, 204, null, cfg.corsOrigin);
     const url = new URL(req.url ?? '/', 'http://local');
@@ -103,7 +121,8 @@ export function createApp(deps: AppDeps = {}) {
       if (m.route.auth && !user) throw new DomainError('UNAUTHORIZED', 'Sign in with your wallet first.', 401);
       const body = await readBody(req);
       const out = await m.route.h({ method: req.method!, path: url.pathname, query: url.searchParams, params: m.params, body, headers: req.headers, user });
-      send(res, isPending(out) ? 202 : 200, out, cfg.corsOrigin);
+      if (out instanceof Raw) send(res, out.status, out.body, cfg.corsOrigin, out.headers);
+      else send(res, isPending(out) ? 202 : 200, out, cfg.corsOrigin);
     } catch (e) {
       const d = e instanceof DomainError ? e : null;
       if (!d) console.error(e);

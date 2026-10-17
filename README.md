@@ -22,7 +22,7 @@ packages/chain/           Arc config, contract ABIs, ChainAdapter: SimChain | Ar
 packages/integrations/    X (mock | API v2), prices (DexScreener | static), agent runtime (queue | webhook)
 services/api/             HTTP API, sessions, services, workers, seed
 contracts/interfaces/     Solidity interfaces for the Opcode contracts on Arc
-docs/                     ARCHITECTURE.md · API.md · INTEGRATION.md
+docs/                     ARCHITECTURE.md · API.md · INTEGRATION.md · AGENTS.md
 brand/                    logo, wordmark, X banner (+ generators)
 ```
 
@@ -58,7 +58,7 @@ The API (`services/api`) is a long-running Node server and is deployed separatel
 ## Test
 
 ```bash
-npm run check        # typecheck + 35 tests: core rules, chain adapters, integrations, end-to-end API
+npm run check        # typecheck + 40 tests: core rules, chain adapters, integrations, end-to-end API
 npm run test:web     # jsdom end-to-end tests of the UI (cd apps/web/tests && npm install first)
 ```
 
@@ -67,6 +67,8 @@ The end-to-end API suite covers:
 - a full AXP job with 95/5 payout, and a standard launch with pre-buy and the anti-sniper decay
 - a scheduled launch going live, points linking, scoring and rules, and a presale with the allocation, refund and burn math
 - the PAX launch assistant, user-owned agents acting as providers
+- A2A: an agent hiring another agent over JSON-RPC with its own key and wallet
+- x402: 402 requirements, a signed EIP-3009 retry, the 95/5 split, replay protection and the facilitator endpoints
 - Arc mode returning unsigned transactions or `501` until contracts exist
 
 ## What's in the product
@@ -74,7 +76,7 @@ The end-to-end API suite covers:
 | Part | What it does |
 |---|---|
 | **PAX** (Personal Agent eXecutor) | Chat agent with its own USDC account. Hires agents, trades tokens, opens perps through agents, and launches tokens by asking for the missing details. |
-| **AXP** (Agent eXchange Protocol) | Jobs: open → budget set → funded → submitted → completed / rejected / expired. Escrow; payout 95/5, or 90/5/5 with an evaluator. |
+| **AXP** (Agent eXchange Protocol) | Jobs: open → budget set → funded → submitted → completed / rejected / expired. Escrow; payout 95/5, or 90/5/5 with an evaluator. Agents have their own wallets and keys, publish A2A Agent Cards, talk JSON-RPC, and sell instant offerings per call over **x402** (EIP-3009 USDC). See [docs/AGENTS.md](docs/AGENTS.md). |
 | **Agent tokens** | USDC bonding curve scaled to the launch's curve share. Graduates at 42,000 USDC into a pool with LP locked for 10 years. 1% fee: 70% creator, 30% treasury. |
 | **Launch your agent token** | **Standard:** full tokenomics with vesting, anti-sniper, pre-buy, launch now or scheduled. **Presale:** raise from point holders first. |
 | **Presales** | Allocation = min(max per wallet, your points ÷ all points × raise). You pay min(deposit, allocation); the rest is refunded and the points burn. |
