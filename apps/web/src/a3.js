@@ -159,7 +159,7 @@ function discoverView(host){
   const ring = AGENTS.filter(a=>a.role!=='evaluator'), judges = AGENTS.filter(a=>a.role==='evaluator');
   const pos = {};
   ring.forEach((a,i) => { const ang = -Math.PI/2 + i/ring.length*Math.PI*2; pos[a.id] = {x: cx + Math.cos(ang)*300, y: cy + Math.sin(ang)*210}; });
-  judges.forEach((a,i) => { pos[a.id] = {x: cx + (i-(judges.length-1)/2)*90, y: cy - 118}; });
+  judges.forEach((a,i) => { pos[a.id] = {x: cx + (i-(judges.length-1)/2)*90, y: cy + 138}; });
   const wallets = Array.from({length:22}, (_,i) => { const r = rng(900+i), ang = -Math.PI/2 + (i+0.5)/22*Math.PI*2 + (r()-.5)*.12; return {x: cx + Math.cos(ang)*470, y: cy + Math.sin(ang)*282}; });
   const wPos = id => wallets[hash(String(id)) % wallets.length];
   const P = id => pos[id] || wPos(id);

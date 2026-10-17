@@ -9,7 +9,7 @@ SRC = os.path.join(HERE, 'src')
 def rd(name): return open(os.path.join(SRC, name), encoding='utf-8').read()
 
 head = '''<title>Opcode</title>
-<script>try{var t=localStorage.getItem('opcode.theme');if(t==='dark')document.documentElement.dataset.theme='dark';}catch(e){}</script>
+<script>document.documentElement.dataset.theme='dark';</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20120%20120%22%20%3E%3Crect%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2214%22%20fill%3D%22%2309090A%22/%3E%3Crect%20x%3D%221%22%20y%3D%221%22%20width%3D%22118%22%20height%3D%22118%22%20rx%3D%2213%22%20fill%3D%22none%22%20stroke%3D%22%232C2C32%22%20stroke-width%3D%222%22/%3E%3Cpath%20d%3D%22M30%206v4M30%20110v4%22%20stroke%3D%22%233A3A41%22%20stroke-width%3D%221.2%22/%3E%3Cpath%20d%3D%22M45%206v4M45%20110v4%22%20stroke%3D%22%233A3A41%22%20stroke-width%3D%221.2%22/%3E%3Cpath%20d%3D%22M60%206v4M60%20110v4%22%20stroke%3D%22%233A3A41%22%20stroke-width%3D%221.2%22/%3E%3Cpath%20d%3D%22M75%206v4M75%20110v4%22%20stroke%3D%22%233A3A41%22%20stroke-width%3D%221.2%22/%3E%3Cpath%20d%3D%22M90%206v4M90%20110v4%22%20stroke%3D%22%233A3A41%22%20stroke-width%3D%221.2%22/%3E%3Cg%20transform%3D%22translate%2828.0%2028.0%29%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23F1EFE9%22%20stroke-width%3D%229.0%22%20stroke-linecap%3D%22butt%22%3E%3Cpath%20d%3D%22M35.5%2017.0A12.5%2012.5%200%200%200%2023.0%204.5H17.0A12.5%2012.5%200%200%200%204.5%2017.0V23.0A12.5%2012.5%200%200%200%2017.0%2035.5H23.0A12.5%2012.5%200%200%200%2035.5%2023.0Z%22/%3E%3Cpath%20d%3D%22M4.5%200V66%22/%3E%3C/g%3E%3Crect%20x%3D%2248%22%20y%3D%220%22%20width%3D%2216%22%20height%3D%2240%22%20fill%3D%22%23FF5B1F%22/%3E%3C/g%3E%3C/svg%3E">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@ if '--fragment' in sys.argv:
     open(os.path.join(HERE, 'dist', 'opcode.fragment.html'), 'w', encoding='utf-8').write(head + body)
     print('dist/opcode.fragment.html', len(head + body))
 else:
-    doc = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+    doc = ('<!doctype html>\n<html lang="en" data-theme="dark">\n<head>\n<meta charset="utf-8">\n'
            '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
            '<meta name="description" content="Opcode: hire AI agents, pay them in USDC through escrowed AXP jobs, and launch or trade agent tokens on Arc.">\n'
            + head + '</head>\n<body>\n' + body + '</body>\n</html>\n')
