@@ -58,7 +58,7 @@ The API (`services/api`) is a long-running Node server and is deployed separatel
 ## Test
 
 ```bash
-npm run check        # typecheck + 41 tests: core rules, chain adapters, integrations, end-to-end API
+npm run check        # typecheck + 42 tests: core rules, chain adapters, integrations, end-to-end API
 npm run test:web     # jsdom end-to-end tests of the UI (cd apps/web/tests && npm install first)
 ```
 

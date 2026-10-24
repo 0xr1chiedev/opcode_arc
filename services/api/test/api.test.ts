@@ -10,6 +10,7 @@ import { signPayment } from '../../../packages/chain/src/index.ts';
 import { keccak256, toHex } from 'viem';
 import { createApp } from '../src/app.ts';
 import { MemoryStore, serialize, deserialize } from '../src/store.ts';
+import { walletLinkMessage } from '../src/services/agents.ts';
 
 let clock = Date.UTC(2026, 9, 16, 9, 0, 0);
 const now = () => clock, advance = (ms: number) => { clock += ms; };
@@ -191,6 +192,34 @@ test('agents: users create agents, act as provider on their jobs, and only they 
   const w = usdcOf(alice.address);
   assert.equal((await api('POST', `/v1/jobs/${j.body.id}/reject`, {}, B)).body.phase, 'rejected');
   assert.equal(usdcOf(alice.address), w); assert.equal(usdcOf(ACCT.escrow(j.body.id)), 0n);
+});
+
+test('agents: a custom wallet must sign for its agent, so an agent key cannot act as someone else', async () => {
+  const offerings = [{ key: 'noop', description: 'Nothing', price: '1', slaMinutes: 1 }];
+  const msgFor = (name: string, wallet: string, token: string) => api('GET', `/v1/agents/wallet-message?name=${encodeURIComponent(name)}&wallet=${wallet}`, undefined, token);
+  // the attack: Bob points an agent at Alice's wallet, without her signature or with his own
+  const noProof = await api('POST', '/v1/agents', { name: 'Puppet', description: 'x', wallet: alice.address, offerings }, B);
+  assert.equal(noProof.status, 403); assert.equal(noProof.body.error.code, 'WALLET_PROOF');
+  const ch = await msgFor('Puppet', alice.address, B); assert.match(ch.body.message, /Agent: puppet\nOwner: /);
+  const forged = await api('POST', '/v1/agents', { name: 'Puppet', description: 'x', wallet: alice.address, walletProof: { signature: await bob.signMessage({ message: ch.body.message }), issuedAt: ch.body.issuedAt }, offerings }, B);
+  assert.equal(forged.status, 403); assert.equal(forged.body.error.code, 'WALLET_PROOF');
+  assert.equal((await api('GET', '/v1/agents/puppet')).status, 404);
+  // a wallet the owner controls signs once; the agent's keys then act as that wallet
+  const runner = privateKeyToAccount('0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6');
+  const m = await msgFor('Own Wallet Bot', runner.address, A);
+  const proof = { signature: await runner.signMessage({ message: m.body.message }), issuedAt: m.body.issuedAt };
+  const body = { name: 'Own Wallet Bot', description: 'x', wallet: runner.address, walletProof: proof, offerings };
+  assert.equal((await api('POST', '/v1/agents', body, B)).body.error.code, 'WALLET_PROOF', 'the signature names its owner, so Bob cannot reuse it');
+  const ag = await api('POST', '/v1/agents', body, A);
+  assert.equal(ag.status, 200, JSON.stringify(ag.body)); assert.equal(ag.body.wallet, runner.address.toLowerCase());
+  const K = (await api('POST', `/v1/agents/${ag.body.id}/keys`, {}, A)).body.key;
+  assert.equal((await api('GET', '/v1/me', undefined, K)).body.user.address, runner.address.toLowerCase());
+  // one wallet per agent, never the owner's own sign-in wallet, and signatures expire
+  assert.equal((await msgFor('Second Bot', runner.address, A)).body.error.code, 'WALLET_TAKEN');
+  assert.equal((await msgFor('Second Bot', alice.address, A)).status, 400);
+  const other = privateKeyToAccount('0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a'), old = clock - 11 * 60_000;
+  const stale = { signature: await other.signMessage({ message: walletLinkMessage(app.ctx.cfg.domain, 'stalebot', alice.address, other.address, old) }), issuedAt: old };
+  assert.match((await api('POST', '/v1/agents', { name: 'Stale Bot', description: 'x', wallet: other.address, walletProof: stale, offerings }, A)).body.error.message, /expired/);
 });
 
 test('A2A: agent cards for discovery; an agent hires another agent over JSON-RPC and pays from its own wallet', async () => {

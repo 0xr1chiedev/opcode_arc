@@ -11,7 +11,7 @@ import { getToken, listTokens, quote, tokenView, trade } from './services/market
 import { createLaunch, commit, getPresale, presaleView, settle, upcoming } from './services/launch.ts';
 import { act, getAgent, getJob, openJob, providerActor, searchOfferings } from './services/jobs.ts';
 import { leaderboard, linkX, pointsView, submitPost } from './services/points.ts';
-import { agentView, createAgent, createKey, revokeKey, withdraw } from './services/agents.ts';
+import { agentView, createAgent, createKey, revokeKey, walletChallenge, withdraw } from './services/agents.ts';
 import { agentCard, a2aRpc, paidCall, platformCard } from './services/a2a.ts';
 import { confirmLaunch, getChat, message } from './services/pax.ts';
 import { seed } from './seed.ts';
@@ -62,9 +62,10 @@ export function createApp(deps: AppDeps = {}) {
 
   /* ---- AXP ---- */
   r.get('/v1/agents', () => ({ items: Object.values(ctx.store.state.agents).map(agentView) }));
+  r.get('/v1/agents/wallet-message', (q) => walletChallenge(ctx, me(q), str(q.query.get('name'), 'name', 32), str(q.query.get('wallet'), 'wallet', 42)), { auth: true });
   r.get('/v1/agents/:id', (q) => agentView(getAgent(ctx, q.params.id!)));
-  r.post('/v1/agents', (q) => agentView(createAgent(ctx, me(q), { name: str(q.body.name, 'name', 32), description: str(q.body.description, 'description'), category: q.body.category, endpoint: q.body.endpoint ?? null,
-    wallet: q.body.wallet ?? null, connection: q.body.connection ?? null, offerings: (q.body.offerings ?? []).map((o: any) => ({ key: str(o.key, 'key', 40), name: o.name, description: str(o.description, 'description'), price: U6(o.price ?? '0', 'price'), pctFeeBps: Number(o.pctFeeBps ?? 0), slaMinutes: Number(o.slaMinutes ?? 10), requirements: o.requirements ?? [], fundTransfer: !!o.fundTransfer, x402: !!o.x402 })) })), { auth: true });
+  r.post('/v1/agents', async (q) => agentView(await createAgent(ctx, me(q), { name: str(q.body.name, 'name', 32), description: str(q.body.description, 'description'), category: q.body.category, endpoint: q.body.endpoint ?? null,
+    wallet: q.body.wallet ?? null, walletProof: q.body.walletProof ?? null, connection: q.body.connection ?? null, offerings: (q.body.offerings ?? []).map((o: any) => ({ key: str(o.key, 'key', 40), name: o.name, description: str(o.description, 'description'), price: U6(o.price ?? '0', 'price'), pctFeeBps: Number(o.pctFeeBps ?? 0), slaMinutes: Number(o.slaMinutes ?? 10), requirements: o.requirements ?? [], fundTransfer: !!o.fundTransfer, x402: !!o.x402 })) })), { auth: true });
   r.get('/v1/offerings', (q) => ({ items: searchOfferings(ctx, q.query.get('q') ?? '', 20).map((x) => ({ agentId: x.agent.id, agent: x.agent.name, ...x.offering })) }));
   r.post('/v1/jobs', (q) => openJob(ctx, me(q), { agentId: str(q.body.agentId, 'agentId'), offering: str(q.body.offering, 'offering'), requirements: q.body.requirements ?? {}, evaluator: q.body.evaluator ?? null, principal: q.body.principal ? U6(q.body.principal, 'principal') : 0n, payFrom: q.body.payFrom === 'wallet' ? 'wallet' : 'pax' }), { auth: true });
   r.get('/v1/jobs', (q) => ({ items: Object.values(ctx.store.state.jobs).filter((j) => j.client === me(q) || getAgent(ctx, j.provider).owner === me(q) || getAgent(ctx, j.provider).wallet === me(q)).sort((a, b) => b.createdAt - a.createdAt).slice(0, 100) }), { auth: true });
