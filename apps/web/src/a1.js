@@ -220,6 +220,8 @@ function initToken(t, seed){
   t.holders = t.holders||1; t.created = t.created || Date.now()-t.age*86400e3;
   const msgs = ['gm builders','graduation soon?','fees going to the creator wallet is a nice touch','agent shipped a new offering today','what is the roadmap for v2?','holding since day one'];
   t.forum = t.forum.length ? t.forum : (t.holders>50 ? Array.from({length:3}, (_,k)=>({who:rid(), t:Date.now()-(k+1)*3600e3*(1+r()*20), text:msgs[Math.floor(r()*msgs.length)]})) : []);
+  // holders a day ago: growth follows the 24h price move, with noise; brand-new tokens start from 1
+  t.h24 = t.age < 1 ? 1 : Math.max(1, Math.round(t.holders / (1 + Math.max(-.04, Math.min(.3, (t.hist.at(-1)/t.open-1)*.4 + (r()-.3)*.05)))));
   return t;
 }
 const TK = s => TOKENS.find(t => t.sym === s);
@@ -241,6 +243,8 @@ function doTrade(t, side, qty, who){
     else { usdv = Math.min(outSell(t.raised, amt), t.raised); t.raised -= usdv; }
   }
   t.hist.push(price(t)); if(t.hist.length > 500) t.hist.shift();
+  // a first buy from a wallet adds a holder; about one sell in four closes a position
+  if(side==='buy' && !t.trades.some(x=>x.who===who)) t.holders++; else if(side==='sell' && t.holders > 1 && Math.random() < .25) t.holders--;
   t.trades.unshift({t:Date.now(), side, usd:usdv, amt, who}); if(t.trades.length > 80) t.trades.pop();
   t.vol += usdv;
   return {usd:usdv, amt, before, after:price(t)};
@@ -495,13 +499,14 @@ function isDark(){ return document.documentElement.dataset.theme==='dark'; }
 document.documentElement.dataset.theme = 'dark';
 function closeMenus(){ ['bellmenu','acctmenu'].forEach(id => { const m = document.getElementById(id); if(m) m.hidden = true; }); }
 document.addEventListener('click', e => { if(!e.target.closest('.menu') && !e.target.closest('#bell') && !e.target.closest('#acct') && !e.target.closest('#bn-me')) closeMenus(); });
+const miT = (t, d) => `<span class="mi-t"><b>${t}</b><em>${d}</em></span>`;
 function toggleMenu(which){
   const m = document.getElementById(which+'menu'), open = m.hidden; closeMenus(); if(!open) return;
   const s = S.session;
   if(which==='bell'){ S.unread = 0; paintTop(); m.innerHTML = `<div class="hd" style="justify-content:space-between"><b>Notifications</b><span class="live mono" style="font-size:11px">Live</span></div>` + (S.notes.length ? S.notes.slice(0,8).map(n=>`<div class="mi" style="cursor:default;align-items:flex-start"><span class="tag ${n.kind}">${esc(n.title)}</span><div style="flex:1;min-width:0">${esc(n.text)}<div class="dim mono" style="font-size:11px">${ago(n.t)} ago</div></div></div>`).join('') : `<div class="empty">Nothing yet.</div>`); }
   else { const P = S.pts; m.innerHTML = `<div class="am-hd">${av(s.address,null,'lg round')}<div style="min-width:0;flex:1"><b style="font-size:15px">${esc(displayName())}</b><div class="mut" style="font-size:12.5px">${P.x?'@'+esc(P.x.handle):`<a href="#points" style="color:var(--acc2)">Link X to earn points</a>`}</div><button class="linkbtn addr" id="mi-cp" style="font-size:12px;color:var(--mut);text-decoration:none" title="Copy address">${short(s.address)} ${I.copy}</button></div></div>
     <div class="am-bal"><div><span>Wallet</span><b>${f(S.wallet)}</b></div><div><span>PAX</span><b>${f(S.pax)}</b></div><div><span>Points</span><b>${f0(P.avail)}</b></div></div>
-    <a class="mi" href="#profile">${I.user}Profile</a><a class="mi" href="#points">${I.star}Points</a><button class="mi" id="mi-sp">${I.send}Submit a post</button><button class="mi" id="mi-k">${I.search}Search<span class="dim" style="margin-left:auto;font-size:12px">⌘K</span></button><a class="mi" href="#whitepaper">${I.doc}Whitepaper</a><a class="mi" href="https://explorer.arc.io/address/${s.address}" target="_blank" rel="noopener">${I.out}Arc explorer</a><hr><button class="mi" id="mi-out">${I.logout}Sign out</button>`;
+    <a class="mi" href="#profile">${I.user}${miT('Profile','Wallet, holdings and your agents')}</a><a class="mi" href="#points">${I.star}${miT('Points','Earn from X, lock for presales')}</a><button class="mi" id="mi-sp">${I.send}${miT('Submit a post','Score an X post for points')}</button><button class="mi" id="mi-k">${I.search}${miT('Search','Tokens, agents and offerings')}<span class="dim" style="margin-left:auto;font-size:12px">⌘K</span></button><a class="mi" href="#whitepaper">${I.doc}${miT('Whitepaper','How PAX, AXP and launches work')}</a><a class="mi" href="https://explorer.arc.io/address/${s.address}" target="_blank" rel="noopener">${I.out}${miT('Arc explorer','Your address on Arc')}</a><hr><button class="mi" id="mi-out">${I.logout}Sign out</button>`;
     $('#mi-sp').onclick = () => { closeMenus(); submitPostModal(() => render()); };
     $('#mi-cp').onclick = () => { try{ navigator.clipboard.writeText(s.address); toast('Address copied'); }catch(e){} };
     $('#mi-out').onclick = signOut; $('#mi-k').onclick = () => { closeMenus(); openCmdk(); }; }
@@ -527,7 +532,8 @@ function openCmdk(){
 }
 
 /* ================= charts ================= */
-function spark(s, w=90, h=26){ if(!s || s.length<2) return ''; const mn=Math.min(...s), mx=Math.max(...s), sx=i=>1+i/(s.length-1)*(w-2), sy=v=>h-2-(v-mn)/(mx-mn||1)*(h-4); const col = s.at(-1)>=s[0]?'var(--up)':'var(--dn)'; return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${s.map((v,i)=>(i?'L':'M')+sx(i).toFixed(1)+' '+sy(v).toFixed(1)).join('')}" fill="none" stroke="${col}" stroke-width="1.4"/></svg>`; }
+let sparkN = 0;
+function spark(s, w=90, h=26){ if(!s || s.length<2) return ''; const mn=Math.min(...s), mx=Math.max(...s), sx=i=>1+i/(s.length-1)*(w-2), sy=v=>h-2-(v-mn)/(mx-mn||1)*(h-4); const col = s.at(-1)>=s[0]?'var(--up)':'var(--dn)', id = 'sk'+(++sparkN), d = s.map((v,i)=>(i?'L':'M')+sx(i).toFixed(1)+' '+sy(v).toFixed(1)).join(''); return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".28"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs><path class="sp-a" d="${d}L${(w-1).toFixed(1)} ${h}L1 ${h}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/></svg>`; }
 function candles(el, series, o={}){
   const n = o.n || 48, per = Math.max(1, Math.floor(series.length/n)), cs = [];
   for(let i=0; i+per<=series.length; i+=per){ const seg = series.slice(i, i+per+1); cs.push({o:seg[0], c:seg.at(-1), h:Math.max(...seg), l:Math.min(...seg)}); }
